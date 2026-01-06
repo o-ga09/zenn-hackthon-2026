@@ -1,0 +1,22 @@
+/* スクロールバーを非表示にするためのスタイル */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 画面の高さを正確に使用するためのスタイル */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* スクロールの伝播を防止するためのスタイル */
+.shorts-container {
+  overscroll-behavior-y: contain;
+  -webkit-overscroll-behavior-y: contain;
+}

@@ -1,0 +1,4 @@
+development:
+  dialect: mysql
+  datasource: user:P@ssw0rd@tcp(localhost:3306)/tavinikkiy?parseTime=true
+  dir: schemes/migrations

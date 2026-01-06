@@ -1,0 +1,28 @@
+.mobile-sheet-content {
+  max-height: 85vh !important;
+  border-top-left-radius: 1rem !important;
+  border-top-right-radius: 1rem !important;
+  border-top: 4px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* サムネイル画像のスタイルを追加 - モバイル表示用 */
+@media (max-width: 767px) {
+  .mobile-sheet-content .thumbnail-container {
+    margin: 1rem 0 1.5rem 0 !important;
+    width: 100% !important;
+    position: relative !important;
+    overflow: hidden !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .mobile-sheet-content .thumbnail-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    min-height: 180px !important;
+    background-color: #f1f5f9 !important;
+  }
+}
