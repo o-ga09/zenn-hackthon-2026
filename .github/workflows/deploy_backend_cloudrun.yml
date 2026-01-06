@@ -1,0 +1,79 @@
+name: Deploy to Cloud Run for Backend
+on:
+  workflow_dispatch:
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'backend/**/*.go'
+
+env:
+  SERVICE_NAME: backend-service-for-migration
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: asia-northeast1
+  GCP_REPOSITORY: backend-migration
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - name: Configure docker for artifact registry
+        run: |
+          gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          platforms: linux/amd64
+          push: true
+          target: deploy
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        env:
+          IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE }} \
+            --project ${{ env.GCP_PROJECT_ID }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform=managed \
+            --no-allow-unauthenticated \
+            --service-account=${{ secrets.SERVICE_ACCOUNT }} \
+            --quiet \
+            --update-secrets=DATABASE_URL=DATABASE_URL:latest \
+            --set-env-vars "GIN_MODE=release" \
+            --set-env-vars "SERVICE_NAME=tavinikkiy" \
+            --set-env-vars "LOG_LEVEL=info" \
+            --set-env-vars "CLOUDFLARE_R2_ACCOUNT_ID=${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}" \
+            --set-env-vars "CLOUDFLARE_R2_ACCESSKEY=${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}" \
+            --set-env-vars "CLOUDFLARE_R2_SECRETKEY=${{ secrets.CLOUDFLARE_R2_SECRETKEY }}" \
+            --set-env-vars "CLOUDFLARE_R2_BUCKET_NAME=${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}" \
+            --set-env-vars "CLOUDFLARE_R2_REGION=${{ secrets.CLOUDFLARE_R2_REGION }}" \
+            --set-env-vars "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" \
+            --set-env-vars "PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
+            --set-env-vars "ENV=PROD"
+        env:
+          IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}

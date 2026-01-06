@@ -1,0 +1,27 @@
+name: Migration
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+     - "backend/db/migrations/*.sql"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Migrate DB
+        run: |
+          cd backend
+          make migrate-up
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL}}

@@ -1,0 +1,65 @@
+name: Lint, Type Check, Format and Test
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "frontend/**/*.ts"
+      - "frontend/**/*.tsx"
+
+jobs:
+  next-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install
+
+      - name: Run lint
+        run: |
+          cd frontend
+          pnpm run lint
+
+      - name: Run type check
+        run: |
+          cd frontend
+          pnpm run type-check
+          
+      - name: Run format check
+        run: |
+          cd frontend
+          pnpm run format
+
+  frontend-test:
+    name: frontend-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          node-version: 20"
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install
+
+      - name: Run test
+        run: |
+          cd frontend
+          pnpm run test
