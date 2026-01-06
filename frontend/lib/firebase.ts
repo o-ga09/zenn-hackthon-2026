@@ -6,7 +6,6 @@ import { getAnalytics, isSupported, Analytics } from 'firebase/analytics'
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-import { getTiDB } from 'firebase/TiDB'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -24,7 +23,6 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 // 認証状態の永続化を設定
 setPersistence(auth, browserLocalPersistence)
-const db = getTiDB(app)
 const storage = getStorage(app)
 
 // Analyticsはブラウザ環境でのみ初期化
@@ -43,4 +41,4 @@ if (typeof window !== 'undefined') {
     })
 }
 
-export { auth, db, storage, analytics }
+export { auth, storage, analytics }

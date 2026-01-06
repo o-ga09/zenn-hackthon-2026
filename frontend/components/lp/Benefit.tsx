@@ -1,7 +1,6 @@
 'use client'
 import { Heart, Share2, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
-import { anyOneVideos } from '@/mock/mock'
 import Image from 'next/image'
 import { motion, useAnimationControls } from 'framer-motion'
 
@@ -26,36 +25,6 @@ export default function Benefit() {
   const [isPaused, setIsPaused] = useState(false)
   // アニメーション制御
   const controls = useAnimationControls()
-
-  // カードを次に進める関数
-  const nextCard = () => {
-    controls.start({ opacity: 0, scale: 0.8 }).then(() => {
-      setCurrentIndex(prev => (prev + 1) % anyOneVideos.length)
-      controls.start({ opacity: 1, scale: 1 })
-    })
-  }
-
-  // カードを前に戻す関数
-  const prevCard = () => {
-    controls.start({ opacity: 0, scale: 0.8 }).then(() => {
-      setCurrentIndex(prev => (prev - 1 + anyOneVideos.length) % anyOneVideos.length)
-      controls.start({ opacity: 1, scale: 1 })
-    })
-  }
-
-  // 自動切り替えの制御
-  useEffect(() => {
-    // 一時停止中は自動切り替えしない
-    if (isPaused) return
-
-    // 表示するカードを自動的に変更するタイマー
-    const timer = setInterval(() => {
-      nextCard()
-    }, 3000)
-
-    // コンポーネントのクリーンアップ時やポーズ状態変更時にタイマーを解除
-    return () => clearInterval(timer)
-  }, [isPaused])
 
   return (
     <section className="container mx-auto px-4 min-h-screen flex items-center py-10 sm:py-16">
@@ -145,15 +114,6 @@ export default function Benefit() {
                 }}
               >
                 <div className="aspect-[9/16] bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl sm:rounded-2xl overflow-hidden relative shadow-lg">
-                  <Image
-                    src={anyOneVideos[currentIndex].thumbnail || '/placeholder.webp'}
-                    alt={anyOneVideos[currentIndex].title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 280px"
-                    priority
-                  />
-
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/80"
                     initial={{ opacity: 0 }}
@@ -165,61 +125,9 @@ export default function Benefit() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                  >
-                    <h4 className="text-white text-lg font-medium mb-1">
-                      {anyOneVideos[currentIndex].title}
-                    </h4>
-                    <p className="text-white/90 text-sm">{anyOneVideos[currentIndex].userName}</p>
-                  </motion.div>
+                  ></motion.div>
                 </div>
               </motion.div>
-            </div>
-
-            {/* ページネーションインジケーターと矢印 */}
-            <div className="flex items-center justify-center mt-6 space-x-4">
-              {/* 左矢印 */}
-              <motion.button
-                className="bg-white rounded-full p-2 shadow-md hover:bg-gray-50 transition-colors"
-                onClick={prevCard}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="前へ"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </motion.button>
-
-              {/* ページネーションドット */}
-              <div className="flex space-x-2">
-                {anyOneVideos.map((_, index) => (
-                  <motion.button
-                    key={index}
-                    className={`w-2 h-2 rounded-full ${
-                      index === currentIndex ? 'bg-primary' : 'bg-gray-300'
-                    }`}
-                    onClick={() => {
-                      controls.start({ opacity: 0, scale: 0.8 }).then(() => {
-                        setCurrentIndex(index)
-                        controls.start({ opacity: 1, scale: 1 })
-                      })
-                    }}
-                    whileHover={{ scale: 1.5 }}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                  />
-                ))}
-              </div>
-
-              {/* 右矢印 */}
-              <motion.button
-                className="bg-white rounded-full p-2 shadow-md hover:bg-gray-50 transition-colors"
-                onClick={nextCard}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="次へ"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-600" />
-              </motion.button>
             </div>
           </div>
         </div>
