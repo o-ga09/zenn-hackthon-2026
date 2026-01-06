@@ -6,7 +6,6 @@ import React from 'react'
 import { useGetTravelsByUserId, useUpdateTravel } from '@/api/travelApi'
 import { useAuth } from '@/context/authContext'
 import { Travel, TravelInput } from '@/api/types'
-import TravelDetailSheet from './TravelDetailSheet'
 
 export default function RecentVideo() {
   const { user, loading } = useAuth()
@@ -139,14 +138,6 @@ export default function RecentVideo() {
           ))}
         </div>
       )}
-
-      {/* 旅行詳細シート */}
-      <TravelDetailSheet
-        travel={selectedTravel}
-        isOpen={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
-        onSave={onSave}
-      />
     </div>
   )
 }
