@@ -2,7 +2,7 @@
 
 本リポジトリは、第４回 Zenn AI Agent Hackthon の提出用リポジトリです。
 
-[公式ページ](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vo4)
+[公式ページ](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol4)
 
 ## テーマ
 
