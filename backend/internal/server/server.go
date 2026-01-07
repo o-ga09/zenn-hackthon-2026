@@ -11,43 +11,44 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/o-ga09/zenn-hackthon-2026/internal/router"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/handler"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
 type Server struct {
 	Port   string
-	engine *echo.Echo
+	Engine *echo.Echo
+	User   handler.IUserServer
 }
 
 func New() *Server {
 	return &Server{
 		Port:   "8080",
-		engine: echo.New(),
+		Engine: echo.New(),
+		User:   &handler.UserServer{},
 	}
 }
 
 func (s *Server) Run(ctx context.Context) error {
 	// ミドルウェアの設定
-	s.engine.Use(middleware.Recover())
-	s.engine.Use(AddID(ctx))
-	s.engine.Use(AddTime())
-	s.engine.Use(RequestLogger())
-	s.engine.Use(SetDB())
-	s.engine.Use(WithTimeout())
-	s.engine.Use(CORS())
-	s.engine.Use(middleware.BodyLimit("10M"))
-	s.engine.Use(middleware.Gzip())
+	s.Engine.Use(middleware.Recover())
+	s.Engine.Use(AddID(ctx))
+	s.Engine.Use(AddTime())
+	s.Engine.Use(RequestLogger())
+	s.Engine.Use(SetDB())
+	s.Engine.Use(WithTimeout())
+	s.Engine.Use(CORS())
+	s.Engine.Use(middleware.BodyLimit("10M"))
+	s.Engine.Use(middleware.Gzip())
 
 	// ルーティングの設定
-	apiRoot := s.engine.Group("/api")
-	router.SetupApplicationRoute(apiRoot)
-	router.SetupSystemRoute(apiRoot)
+	s.SetupApplicationRoute()
+
 	// サーバーの起動
 	port := fmt.Sprintf(":%s", s.Port)
 	srv := &http.Server{
 		Addr:    port,
-		Handler: s.engine,
+		Handler: s.Engine,
 	}
 
 	// サーバーの起動

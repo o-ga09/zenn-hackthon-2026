@@ -61,7 +61,7 @@ func GetCtxGinCtx(ctx context.Context) *gin.Context {
 }
 
 func GetCfgFromCtx(ctx context.Context) *config.Config {
-	return ctx.Value(ConfigKey).(*config.Config)
+	return ctx.Value(config.CtxEnvKey).(*config.Config)
 }
 
 func SetDB(ctx context.Context, db *gorm.DB) context.Context {
