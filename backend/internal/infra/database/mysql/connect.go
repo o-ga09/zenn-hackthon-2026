@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/schema"
 
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database"
-	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 func Connect(ctx context.Context) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
-	env := Ctx.GetCfgFromCtx(ctx)
+	env := config.GetCtxEnv(ctx)
 	dsn := env.Database_url
 	logger := database.NewSentryLogger()
 	// リトライ処理

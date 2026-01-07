@@ -4,20 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"gorm.io/gorm"
 )
 
 type CtxUserKey string
-type CtxGinKey string
 type CtxRequestIDKey string
 type CfgKey string
 type DBKey string
 
 const ConfigKey CfgKey = "config"
-const GinCtx CtxGinKey = "ginCtx"
 const USERID CtxUserKey = "userID"
 const REQUESTID CtxRequestIDKey = "requestId"
 const DB DBKey = "db"
@@ -47,21 +43,6 @@ func GetRequestID(ctx context.Context) string {
 		return reqID
 	}
 	return ""
-}
-
-func SetCtxGinCtx(ctx context.Context, c *gin.Context) context.Context {
-	return context.WithValue(ctx, GinCtx, c)
-}
-
-func GetCtxGinCtx(ctx context.Context) *gin.Context {
-	if c, ok := ctx.Value(GinCtx).(*gin.Context); ok {
-		return c
-	}
-	return nil
-}
-
-func GetCfgFromCtx(ctx context.Context) *config.Config {
-	return ctx.Value(config.CtxEnvKey).(*config.Config)
 }
 
 func SetDB(ctx context.Context, db *gorm.DB) context.Context {

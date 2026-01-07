@@ -22,7 +22,7 @@ type RequestInfo struct {
 func AddID(ctx context.Context) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			ctx := Ctx.SetRequestID(c.Request().Context())
+			ctx := Ctx.SetRequestID(ctx)
 			c.SetRequest(c.Request().WithContext(ctx))
 			return next(c)
 		}

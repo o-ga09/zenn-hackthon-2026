@@ -8,6 +8,7 @@ import (
 
 	"cloud.google.com/go/logging"
 
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/constant"
 	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 
@@ -70,7 +71,7 @@ func Logger(ctx context.Context) *slog.Logger {
 
 		return a
 	}
-	cfg := Ctx.GetCfgFromCtx(ctx)
+	cfg := config.GetCtxEnv(ctx)
 	projectID := cfg.ProjectID
 	h := traceHandler{slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, ReplaceAttr: replacer}), projectID}
 	newh := h.WithAttr([]slog.Attr{

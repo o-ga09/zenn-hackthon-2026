@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/morikuni/failure/v2"
-	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
@@ -91,14 +90,10 @@ func MakeAuthorizationError(ctx context.Context, msg string) {
 	} else {
 		wrapped = failure.Translate(errors.New(msg), ErrTypeUnAuthorized)
 	}
-	c := Ctx.GetCtxGinCtx(ctx)
-	if c != nil {
-		c.Error(wrapped)
-	}
+
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
-	c.Abort()
 }
 
 // ginのcontextに認可エラーをセットして、ログ出力する
@@ -109,14 +104,9 @@ func MakeAuthorizedError(ctx context.Context, msg string) {
 	} else {
 		wrapped = failure.Translate(errors.New(msg), ErrTypeForbidden)
 	}
-	c := Ctx.GetCtxGinCtx(ctx)
-	if c != nil {
-		c.Error(wrapped)
-	}
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
-	c.Abort()
 }
 
 // ginのcontextにシステムエラーをセットして、ログ出力する
@@ -127,14 +117,9 @@ func MakeSystemError(ctx context.Context, msg string) {
 	} else {
 		wrapped = failure.Translate(errors.New(msg), ErrTypeCritical)
 	}
-	c := Ctx.GetCtxGinCtx(ctx)
-	if c != nil {
-		c.Error(wrapped)
-	}
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Error(ctx, errMessage, callStack, stack)
-	c.Abort()
 }
 
 func MakeBusinessError(ctx context.Context, msg string) {
@@ -144,14 +129,10 @@ func MakeBusinessError(ctx context.Context, msg string) {
 	} else {
 		wrapped = failure.Translate(errors.New(msg), ErrTypeBussiness)
 	}
-	c := Ctx.GetCtxGinCtx(ctx)
-	if c != nil {
-		c.Error(wrapped)
-	}
+
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
-	c.Abort()
 }
 
 func MakeConflictError(ctx context.Context, msg string) {
@@ -161,14 +142,9 @@ func MakeConflictError(ctx context.Context, msg string) {
 	} else {
 		wrapped = failure.Translate(errors.New(msg), ErrTypeConflict)
 	}
-	c := Ctx.GetCtxGinCtx(ctx)
-	if c != nil {
-		c.Error(wrapped)
-	}
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
-	c.Abort()
 }
 
 func MakeNotFoundError(ctx context.Context, msg string) {
@@ -178,14 +154,9 @@ func MakeNotFoundError(ctx context.Context, msg string) {
 	} else {
 		wrapped = failure.Translate(errors.New(msg), ErrTypeNotFound)
 	}
-	c := Ctx.GetCtxGinCtx(ctx)
-	if c != nil {
-		c.Error(wrapped)
-	}
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
-	c.Abort()
 }
 
 // エラーをラップして、返す

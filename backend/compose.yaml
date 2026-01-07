@@ -1,0 +1,63 @@
+version: "3.9"
+services:
+  db:
+    container_name: db
+    image: mysql:8.0
+    platform: linux/x86_64
+    environment:
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+      MYSQL_DATABASE: note_app
+      MYSQL_USER: user
+      MYSQL_PASSWORD: P@ssw0rd
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/conf.d/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./db/sql:/docker-entrypoint-initdb.d
+  app:
+    container_name: app
+    depends_on:
+      - db
+      - localstack
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    environment:
+      ENV: local
+      GIN_MODE: release
+      APP_NAME: tavinikkiy
+      PORT: 8080
+      PROJECT_ID: tavinikkiy
+      DATABASE_URL: user:P@ssw0rd@tcp(db:3306)/develop_tavinikkiy?parseTime=true
+      GOOGLE_APPLICATION_CREDENTIALS: /app/tavinikkiy-8e89cb34ad51.json
+      CLOUDFLARE_R2_ACCOUNT_ID: dummy
+      CLOUDFLARE_R2_ACCESSKEY: dummy
+      CLOUDFLARE_R2_SECRETKEY: dummy
+      CLOUDFLARE_R2_BUCKET_NAME: tavinikkiy-local
+      CLOUDFLARE_R2_REGION: ap-northeast-1
+      SENTRY_DSN: ${SENTRY_DSN}
+    volumes:
+      - ./:/app
+    ports:
+      - "8080:8080"
+  localstack:
+    container_name: localstack
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - SERVICES=s3
+      - AWS_DEFAULT_REGION=ap-northeast-1
+      - EDGE_PORT=4566
+      - AWS_ACCESS_KEY_ID=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy
+      - DEFAULT_REGION=ap-northeast-1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+      - "./data:/home/localstack/data"
+volumes:
+  db_data:
