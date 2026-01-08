@@ -59,5 +59,11 @@ func Connect(ctx context.Context) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(10)           // アイドル状態の最大接続数
 	sqlDB.SetMaxOpenConns(100)          // 最大接続数
 	sqlDB.SetConnMaxLifetime(time.Hour) // 接続の最大生存期間
+
+	// UUID自動付与プラグインを登録
+	if err := db.Use(database.NewUUIDPlugin()); err != nil {
+		return nil, fmt.Errorf("failed to register UUID plugin: %w", err)
+	}
+
 	return db, nil
 }

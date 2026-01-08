@@ -5,9 +5,10 @@ func (s *Server) SetupApplicationRoute() {
 
 	users := apiRoot.Group("/users")
 	{
-		users.GET("", s.User.GET)
-		users.POST("", s.User.Create)
-		users.PUT("/:id", s.User.Update)
-		users.DELETE("/:id", s.User.Delete)
+		users.GET("", s.User.List)          // ユーザー一覧取得
+		users.GET("/:id", s.User.GetByID)   // IDでユーザー取得
+		users.POST("", s.User.Create)       // ユーザー作成
+		users.PUT("/:id", s.User.Update)    // ユーザー更新
+		users.DELETE("/:id", s.User.Delete) // ユーザー削除
 	}
 }

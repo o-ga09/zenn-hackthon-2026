@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
@@ -21,11 +22,19 @@ type Server struct {
 	User   handler.IUserServer
 }
 
-func New() *Server {
+func New(ctx context.Context) *Server {
+	// ハンドラーの初期化
+	userHandler := handler.NewUserServer(&mysql.UserRepository{})
+
+	// Echoインスタンス作成
+	e := echo.New()
+	e.Validator = NewValidator()
+	e.Binder = NewCustomBinder()
+
 	return &Server{
 		Port:   "8080",
-		Engine: echo.New(),
-		User:   &handler.UserServer{},
+		Engine: e,
+		User:   userHandler,
 	}
 }
 
@@ -40,6 +49,7 @@ func (s *Server) Run(ctx context.Context) error {
 	s.Engine.Use(CORS())
 	s.Engine.Use(middleware.BodyLimit("10M"))
 	s.Engine.Use(middleware.Gzip())
+	s.Engine.Use(ErrorHandler())
 
 	// ルーティングの設定
 	s.SetupApplicationRoute()

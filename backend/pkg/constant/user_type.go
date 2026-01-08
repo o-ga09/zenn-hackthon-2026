@@ -3,11 +3,20 @@ package constant
 // ユーザータイプ定数
 const (
 	// 管理者ユーザー
-	UserTypeAdmin = "550e8400-e29b-41d4-a716-446655440000"
+	UserTypeAdmin = "admin"
 
 	// 一般ユーザー
-	UserTypeGeneral = "550e8400-e29b-41d4-a716-446655440001"
+	UserTypeTavinikkiy = "tavinikkiy"
 
-	// 課金ユーザー（将来的な拡張用）
-	UserTypePremium = "550e8400-e29b-41d4-a716-446655440002"
+	// AIエージェントユーザー
+	UserTypeTavinikkiyAgent = "tavinikkiy-agent"
+)
+
+// ユーザープラン定数
+const (
+	// 無料プラン
+	UserPlanFree = "free"
+
+	// プレミアムプラン
+	UserPlanPremium = "premium"
 )

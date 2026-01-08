@@ -13,3 +13,10 @@ func StringToPtr(s string) *string {
 	}
 	return &s
 }
+
+func PtrToInt(i *int) int {
+	if i == nil {
+		return 0
+	}
+	return *i
+}

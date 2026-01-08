@@ -2,14 +2,18 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/constant"
 	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 )
 
 type RequestInfo struct {
@@ -122,4 +126,58 @@ func AddTime() echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+func ErrorHandler() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			err := next(c)
+			if err == nil {
+				return nil
+			}
+			code := errors.GetCode(err)
+			statusCode := toHTTPStatusCode(code)
+			message := errors.GetMessage(err)
+			return c.JSON(statusCode, map[string]string{"error": message})
+		}
+	}
+}
+
+func toHTTPStatusCode(code errors.ErrCode) int {
+	switch code {
+	case errors.ErrCodeCritical:
+		return http.StatusInternalServerError
+	case errors.ErrCodeBussiness:
+		return http.StatusBadRequest
+	case errors.ErrCodeNotFound:
+		return http.StatusNotFound
+	case errors.ErrCodeConflict:
+		return http.StatusConflict
+	case errors.ErrCodeUnAuthorized:
+		return http.StatusUnauthorized
+	case errors.ErrCodeForbidden:
+		return http.StatusForbidden
+	case errors.ErrCodeInValidArgument:
+		return http.StatusUnprocessableEntity
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// CustomValidator is a wrapper for the validator library
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+// Validate implements the echo.Validator interface
+func (cv *CustomValidator) Validate(i interface{}) error {
+	err := cv.validator.Struct(i)
+	if err != nil {
+		fmt.Println("⏰")
+		return errors.MakeInvalidArgumentError(context.Background(), err.Error())
+	}
+	return nil
+}
+func NewValidator() *CustomValidator {
+	return &CustomValidator{validator: validator.New()}
 }

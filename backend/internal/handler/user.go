@@ -1,28 +1,214 @@
 package handler
 
-import "github.com/labstack/echo"
+import (
+	"database/sql"
+	"net/http"
+
+	"github.com/labstack/echo"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/request"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/response"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/constant"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
+	nullvalue "github.com/o-ga09/zenn-hackthon-2026/pkg/null_value"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
+	"gorm.io/gorm"
+)
 
 type IUserServer interface {
-	GET(ctx echo.Context) error
-	Create(ctx echo.Context) error
-	Update(ctx echo.Context) error
-	Delete(ctx echo.Context) error
+	List(c echo.Context) error
+	GetByID(c echo.Context) error
+	GetByUID(c echo.Context) error
+	Create(c echo.Context) error
+	Update(c echo.Context) error
+	Delete(c echo.Context) error
 }
 
-type UserServer struct{}
-
-func (u *UserServer) GET(ctx echo.Context) error {
-	return ctx.String(200, "Get User")
+type UserServer struct {
+	repo domain.IUserRepository
 }
 
-func (u *UserServer) Create(ctx echo.Context) error {
-	return ctx.String(200, "Create User")
+func NewUserServer(repo domain.IUserRepository) IUserServer {
+	return &UserServer{
+		repo: repo,
+	}
 }
 
-func (u *UserServer) Update(ctx echo.Context) error {
-	return ctx.String(200, "Update User")
+// List ユーザー一覧取得
+func (s *UserServer) List(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var query request.ListQuery
+	if err := c.Bind(&query); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := c.Validate(&query); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	users, err := s.repo.FindAll(ctx, &domain.FindOptions{
+		Limit:  ptr.PtrToInt(query.Limit),
+		Offset: ptr.PtrToInt(query.Offset),
+	})
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	responses := make([]*response.UserResponse, len(users))
+	for i, user := range users {
+		responses[i] = response.ToResponse(user)
+	}
+
+	return c.JSON(http.StatusOK, responses)
 }
 
-func (u *UserServer) Delete(ctx echo.Context) error {
-	return ctx.String(200, "Delete User")
+// GetByID IDでユーザー取得
+func (s *UserServer) GetByID(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// パスパラメータのバインドとバリデーション
+	var param request.GetByIDParam
+	if err := c.Bind(&param); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := c.Validate(&param); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	user, err := s.repo.FindByID(ctx, param.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.MakeNotFoundError(ctx, "User not found")
+		}
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.JSON(http.StatusOK, response.ToResponse(user))
+}
+
+// GetByUID Firebase UIDでユーザー取得
+func (s *UserServer) GetByUID(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// クエリパラメータのバインドとバリデーション
+	var query request.GetByUIDQuery
+	if err := c.Bind(&query); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := c.Validate(&query); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	user, err := s.repo.FindByUID(ctx, query.UID)
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.JSON(http.StatusOK, response.ToResponse(user))
+}
+
+// Create ユーザー作成
+func (s *UserServer) Create(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req request.CreateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// バリデーション
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// 既存ユーザーの確認
+	existingUser, _ := s.repo.FindByUID(ctx, req.UID)
+	if existingUser != nil {
+		return errors.MakeConflictError(ctx, "User with the same UID already exists")
+	}
+
+	// ユーザー作成
+	user := &domain.User{
+		UID:  req.UID,
+		Name: req.Name,
+		Type: req.Type,
+		Plan: req.Plan,
+	}
+
+	// プランに応じた初期トークン残高設定
+	if req.Plan == constant.UserPlanFree {
+		user.TokenBalance = nullvalue.ToNullInt64(0)
+	} else if req.Plan == constant.UserPlanPremium {
+		user.TokenBalance = nullvalue.ToNullInt64(10000)
+	}
+
+	if err := s.repo.Create(ctx, user); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.JSON(http.StatusCreated, response.ToResponse(user))
+}
+
+// Update ユーザー更新
+func (s *UserServer) Update(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req request.UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// 既存ユーザーの取得
+	user, err := s.repo.FindByID(ctx, req.ID)
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// 更新内容を反映
+	if req.Name != nil {
+		user.Name = *req.Name
+	}
+	if req.Type != nil {
+		user.Type = *req.Type
+	}
+	if req.Plan != nil {
+		user.Plan = *req.Plan
+	}
+	if req.TokenBalance != nil {
+		user.TokenBalance = sql.NullInt64{Int64: *req.TokenBalance, Valid: true}
+	}
+
+	if err := s.repo.Update(ctx, user); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.JSON(http.StatusOK, response.ToResponse(user))
+}
+
+// Delete ユーザー削除
+func (s *UserServer) Delete(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// パスパラメータのバインドとバリデーション
+	var param request.DeleteUserParam
+	if err := c.Bind(&param); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := c.Validate(&param); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := s.repo.Delete(ctx, param.ID); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }

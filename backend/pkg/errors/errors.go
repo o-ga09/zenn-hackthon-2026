@@ -20,7 +20,7 @@ type ErrCode string
 var (
 	ErrCodeUnAuthorized    ErrCode = "unauthorized"     // 401
 	ErrCodeForbidden       ErrCode = "forbidden"        // 403
-	ErrCodeInValidArgument ErrCode = "invalid argument" // 400
+	ErrCodeInValidArgument ErrCode = "invalid argument" // 422
 	ErrCodeBussiness       ErrCode = "business error"   // 400
 	ErrCodeConflict        ErrCode = "conflict"         // 409
 	ErrCodeNotFound        ErrCode = "not found"        // 404
@@ -28,12 +28,13 @@ var (
 )
 
 var (
-	ErrTypeUnAuthorized ErrType = "unauthorized"
-	ErrTypeForbidden    ErrType = "forbidden"
-	ErrTypeBussiness    ErrType = "business error"
-	ErrTypeConflict     ErrType = "conflict"
-	ErrTypeNotFound     ErrType = "not found"
-	ErrTypeCritical     ErrType = "critical error"
+	ErrTypeUnAuthorized    ErrType = "unauthorized"
+	ErrTypeForbidden       ErrType = "forbidden"
+	ErrTypeBussiness       ErrType = "business error"
+	ErrTypeConflict        ErrType = "conflict"
+	ErrTypeNotFound        ErrType = "not found"
+	ErrTypeCritical        ErrType = "critical error"
+	ErrTypeInvalidArgument ErrType = "invalid argument"
 )
 
 var (
@@ -122,7 +123,7 @@ func MakeSystemError(ctx context.Context, msg string) {
 	logger.Error(ctx, errMessage, callStack, stack)
 }
 
-func MakeBusinessError(ctx context.Context, msg string) {
+func MakeBusinessError(ctx context.Context, msg string) error {
 	var wrapped error
 	if msg == "" {
 		wrapped = failure.Translate(ErrSystem, ErrTypeBussiness)
@@ -133,9 +134,10 @@ func MakeBusinessError(ctx context.Context, msg string) {
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
+	return wrapped
 }
 
-func MakeConflictError(ctx context.Context, msg string) {
+func MakeConflictError(ctx context.Context, msg string) error {
 	var wrapped error
 	if msg == "" {
 		wrapped = failure.Translate(ErrConflict, ErrTypeConflict)
@@ -145,9 +147,10 @@ func MakeConflictError(ctx context.Context, msg string) {
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
+	return wrapped
 }
 
-func MakeNotFoundError(ctx context.Context, msg string) {
+func MakeNotFoundError(ctx context.Context, msg string) error {
 	var wrapped error
 	if msg == "" {
 		wrapped = failure.Translate(ErrNotFound, ErrTypeNotFound)
@@ -157,6 +160,20 @@ func MakeNotFoundError(ctx context.Context, msg string) {
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
+	return wrapped
+}
+
+func MakeInvalidArgumentError(ctx context.Context, msg string) error {
+	var wrapped error
+	if msg == "" {
+		wrapped = failure.Translate(ErrInvalidArgument, ErrTypeInvalidArgument)
+	} else {
+		wrapped = failure.Translate(errors.New(msg), ErrTypeInvalidArgument)
+	}
+	stack := getCallstack(wrapped)
+	errMessage := GetMessage(wrapped)
+	logger.Warn(ctx, errMessage, callStack, stack)
+	return wrapped
 }
 
 // エラーをラップして、返す
@@ -177,7 +194,7 @@ func New(ctx context.Context, err string) error {
 }
 
 func IsWrapped(err error) bool {
-	return failure.Is(err, ErrTypeUnAuthorized, ErrTypeForbidden, ErrTypeBussiness, ErrTypeCritical, ErrTypeNotFound, ErrTypeConflict)
+	return failure.Is(err, ErrTypeUnAuthorized, ErrTypeForbidden, ErrTypeBussiness, ErrTypeCritical, ErrTypeNotFound, ErrTypeConflict, ErrTypeInvalidArgument)
 }
 
 func Is(err error, target error) bool {
@@ -206,20 +223,24 @@ func GetCode(err error) ErrCode {
 	}
 
 	types := failure.CodeOf(err)
+	fmt.Println("😊", types)
 	if code, ok := types.(ErrType); ok {
+		fmt.Println("🎉", code)
 		switch code {
 		case ErrTypeUnAuthorized:
 			return ErrCodeUnAuthorized
 		case ErrTypeForbidden:
 			return ErrCodeForbidden
 		case ErrTypeBussiness:
-			return ErrCodeInValidArgument
+			return ErrCodeBussiness
 		case ErrTypeCritical:
 			return ErrCodeCritical
 		case ErrTypeNotFound:
 			return ErrCodeNotFound
 		case ErrTypeConflict:
 			return ErrCodeConflict
+		case ErrTypeInvalidArgument:
+			return ErrCodeInValidArgument
 		}
 	}
 	return ""

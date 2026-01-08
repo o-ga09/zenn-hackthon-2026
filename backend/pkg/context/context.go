@@ -49,6 +49,13 @@ func SetDB(ctx context.Context, db *gorm.DB) context.Context {
 	return context.WithValue(ctx, DB, db)
 }
 
+func GetDB(ctx context.Context) *gorm.DB {
+	if db, ok := ctx.Value(DB).(*gorm.DB); ok {
+		return db.WithContext(ctx)
+	}
+	return nil
+}
+
 func SetRequestTime(ctx context.Context, time time.Time) context.Context {
 	return context.WithValue(ctx, "requestTime", time)
 }

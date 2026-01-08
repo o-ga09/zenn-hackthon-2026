@@ -19,7 +19,7 @@ func main() {
 
 	logger.Logger(ctx)
 
-	srv := server.New()
+	srv := server.New(ctx)
 	if err := srv.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
