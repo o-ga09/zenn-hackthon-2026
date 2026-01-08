@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/constant"
 	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
@@ -86,6 +87,44 @@ func (r *RequestInfo) LogValue() slog.Value {
 		slog.String("errors", r.errors),
 		slog.String("elapsed", r.elapsed.String()),
 	)
+}
+
+func AuthMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			var err error
+			ctx := c.Request().Context()
+
+			cookie, err := c.Cookie("__session")
+			if err != nil {
+			}
+
+			// Firebaseアプリケーションの取得
+			app, err := config.GetFirebaseApp(ctx)
+			if err != nil {
+				errors.MakeAuthorizationError(ctx, "認証サービスの初期化に失敗しました")
+				return nil
+			}
+
+			client, err := app.Auth(ctx)
+			if err != nil {
+				errors.MakeAuthorizationError(ctx, "認証クライアントの初期化に失敗しました")
+				return nil
+			}
+
+			// セッションCookieの検証
+			sessionToken, err := client.VerifySessionCookie(ctx, cookie.Value)
+			if err != nil {
+				errors.MakeAuthorizationError(ctx, "無効なセッションCookieです")
+				return nil
+			}
+
+			ctx = c.Request().Context()
+			ctx = Ctx.SetCtxFromUser(ctx, sessionToken.UID)
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+	}
 }
 
 func CORS() echo.MiddlewareFunc {

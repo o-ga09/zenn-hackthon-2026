@@ -20,11 +20,13 @@ type Server struct {
 	Port   string
 	Engine *echo.Echo
 	User   handler.IUserServer
+	Auth   handler.IAuthServer
 }
 
 func New(ctx context.Context) *Server {
 	// ハンドラーの初期化
 	userHandler := handler.NewUserServer(&mysql.UserRepository{})
+	authHandler := handler.NewAuthServer(&mysql.UserRepository{})
 
 	// Echoインスタンス作成
 	e := echo.New()
@@ -35,6 +37,7 @@ func New(ctx context.Context) *Server {
 		Port:   "8080",
 		Engine: e,
 		User:   userHandler,
+		Auth:   authHandler,
 	}
 }
 
