@@ -27,14 +27,14 @@ export default function GoogleLoginPromptDialog({
   isOpen: boolean
   onClose: () => void
 }) {
-  const { googleLogin } = useAuth()
+  const { login } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true)
-      await googleLogin()
+      await login()
       // ログイン処理は authContext 内で自動的にハンドリングされるため、
       // ここでのリダイレクトは不要
     } catch (error) {

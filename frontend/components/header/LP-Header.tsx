@@ -19,7 +19,7 @@ export default function LPHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { user, googleLogin, logout } = useAuth()
+  const { user, login, logout } = useAuth()
   const router = useRouter()
 
   const toggleMenu = () => {
@@ -30,7 +30,7 @@ export default function LPHeader() {
     setLoading(true)
     try {
       // googleLoginにリダイレクト処理が含まれているので、ここではルーティングしない
-      await googleLogin()
+      await login()
     } catch (err) {
       setError('Googleログインに失敗しました')
       console.error(err)
