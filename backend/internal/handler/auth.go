@@ -76,25 +76,34 @@ func (s *AuthServer) SignUp(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
+	cfg := config.GetCtxEnv(ctx)
+	domainName := cfg.COOKIE_DOMAIN
+	isSecure := true
+	sameSite := http.SameSiteNoneMode
+
+	// ローカル環境の設定
+	if cfg.Env == "local" || cfg.Env == "dev" {
+		domainName = "localhost"
+		isSecure = false
+		sameSite = http.SameSiteLaxMode
+	}
+
 	// Cookieの設定
 	c.SetCookie(&http.Cookie{
 		Name:     "__session",
 		Value:    cookie,
 		MaxAge:   int(expiresIn),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   isSecure,
+		Domain:   domainName,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 	})
 
 	// ユーザーが存在するか確認
-	_, err = s.repo.FindByUID(ctx, token.UID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// ユーザーが存在しない場合は何もしない（フロントエンドでユーザー作成APIを呼ぶ）
-		} else {
-			return errors.Wrap(ctx, err)
-		}
+	_, err = s.repo.FindByUID(ctx, &domain.User{UID: token.UID})
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return errors.Wrap(ctx, err)
 	}
 
 	return c.JSON(http.StatusOK, response.SessionResponse{
@@ -105,15 +114,30 @@ func (s *AuthServer) SignUp(c echo.Context) error {
 
 // SignOut セッション削除
 func (s *AuthServer) SignOut(c echo.Context) error {
+	ctx := c.Request().Context()
+	cfg := config.GetCtxEnv(ctx)
+
+	domain := cfg.COOKIE_DOMAIN
+	isSecure := true
+	sameSite := http.SameSiteNoneMode
+
+	// ローカル環境の設定
+	if cfg.Env == "local" || cfg.Env == "dev" {
+		domain = "" // ローカルではDomainを空にする
+		isSecure = false
+		sameSite = http.SameSiteLaxMode
+	}
+
 	// Cookieの削除
 	c.SetCookie(&http.Cookie{
 		Name:     "__session",
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   isSecure,
+		Domain:   domain,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 	})
 
 	return c.JSON(http.StatusOK, response.DeleteSessionResponse{
@@ -133,7 +157,7 @@ func (s *AuthServer) GetUser(c echo.Context) error {
 	}
 
 	// UIDでユーザーを取得
-	user, err := s.repo.FindByUID(ctx, uid)
+	user, err := s.repo.FindByUID(ctx, &domain.User{UID: uid})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.MakeNotFoundError(ctx, "ユーザーが見つかりません")

@@ -77,7 +77,7 @@ func (s *UserServer) GetByID(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	user, err := s.repo.FindByID(ctx, param.ID)
+	user, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: param.ID}})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.MakeNotFoundError(ctx, "User not found")
@@ -102,7 +102,7 @@ func (s *UserServer) GetByUID(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	user, err := s.repo.FindByUID(ctx, query.UID)
+	user, err := s.repo.FindByUID(ctx, &domain.User{UID: query.UID})
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}
@@ -125,7 +125,7 @@ func (s *UserServer) Create(c echo.Context) error {
 	}
 
 	// 既存ユーザーの確認
-	existingUser, _ := s.repo.FindByUID(ctx, req.UID)
+	existingUser, _ := s.repo.FindByUID(ctx, &domain.User{UID: req.UID})
 	if existingUser != nil {
 		return errors.MakeConflictError(ctx, "User with the same UID already exists")
 	}
@@ -166,7 +166,7 @@ func (s *UserServer) Update(c echo.Context) error {
 	}
 
 	// 既存ユーザーの取得
-	user, err := s.repo.FindByID(ctx, req.ID)
+	user, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: req.ID}})
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}
@@ -206,7 +206,7 @@ func (s *UserServer) Delete(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	if err := s.repo.Delete(ctx, param.ID); err != nil {
+	if err := s.repo.Delete(ctx, &domain.User{BaseModel: domain.BaseModel{ID: param.ID}}); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 

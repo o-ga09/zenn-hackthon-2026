@@ -129,14 +129,19 @@ func AuthMiddleware() echo.MiddlewareFunc {
 
 func CORS() echo.MiddlewareFunc {
 	return middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"https://tavinikkiy.com",
+		},
 		AllowMethods: []string{
 			echo.POST,
 			echo.GET,
 			echo.OPTIONS,
+			echo.PUT,
+			echo.DELETE,
 		},
-		AllowHeaders:     []string{"Content-Type"},
-		AllowCredentials: false,
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Requested-With"},
+		AllowCredentials: true,
 		MaxAge:           86400, // 24 hours in seconds
 	})
 }

@@ -1,5 +1,7 @@
 package request
 
+import "github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+
 // ListQuery ユーザー一覧取得のクエリパラメータ
 type ListQuery struct {
 	Limit  *int `query:"limit" validate:"omitempty,gte=0,lte=100"`
@@ -36,4 +38,13 @@ type UpdateUserRequest struct {
 // DeleteUserParam ユーザー削除のパスパラメータ
 type DeleteUserParam struct {
 	ID string `param:"id" validate:"required,gte=1"`
+}
+
+func ToUser(req *CreateUserRequest) *domain.User {
+	return &domain.User{
+		UID:  req.UID,
+		Name: req.Name,
+		Type: req.Type,
+		Plan: req.Plan,
+	}
 }

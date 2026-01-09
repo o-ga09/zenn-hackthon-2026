@@ -21,9 +21,9 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 }
 
 // FindByID IDでユーザーを検索
-func (r *UserRepository) FindByID(ctx context.Context, id string) (*domain.User, error) {
+func (r *UserRepository) FindByID(ctx context.Context, cond *domain.User) (*domain.User, error) {
 	var user domain.User
-	if err := Ctx.GetDB(ctx).First(&user, id).Error; err != nil {
+	if err := Ctx.GetDB(ctx).First(&user, cond).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.Wrap(ctx, err)
 		}
@@ -33,9 +33,9 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*domain.User,
 }
 
 // FindByUID Firebase UIDでユーザーを検索
-func (r *UserRepository) FindByUID(ctx context.Context, uid string) (*domain.User, error) {
+func (r *UserRepository) FindByUID(ctx context.Context, cond *domain.User) (*domain.User, error) {
 	var user domain.User
-	if err := Ctx.GetDB(ctx).Where("uid = ?", uid).First(&user).Error; err != nil {
+	if err := Ctx.GetDB(ctx).First(&user, cond).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.Wrap(ctx, err)
 		}
@@ -62,7 +62,7 @@ func (r *UserRepository) FindAll(ctx context.Context, opts *domain.FindOptions) 
 // Update ユーザー情報を更新
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	// 存在確認
-	if _, err := r.FindByID(ctx, user.ID); err != nil {
+	if _, err := r.FindByID(ctx, user); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
@@ -74,14 +74,14 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 }
 
 // Delete ユーザーを削除（論理削除）
-func (r *UserRepository) Delete(ctx context.Context, id string) error {
+func (r *UserRepository) Delete(ctx context.Context, cond *domain.User) error {
 	// 存在確認
-	if _, err := r.FindByID(ctx, id); err != nil {
+	if _, err := r.FindByID(ctx, cond); err != nil {
 		return err
 	}
 
 	// 論理削除
-	if err := Ctx.GetDB(ctx).Delete(&domain.User{}, id).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Delete(&domain.User{}, cond).Error; err != nil {
 		return errors.Wrap(ctx, err)
 	}
 	return nil

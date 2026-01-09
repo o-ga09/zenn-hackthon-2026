@@ -19,15 +19,15 @@ type IUserRepository interface {
 	// Create 新規ユーザーを作成
 	Create(ctx context.Context, user *User) error
 	// FindByID IDでユーザーを検索
-	FindByID(ctx context.Context, id string) (*User, error)
+	FindByID(ctx context.Context, cond *User) (*User, error)
 	// FindByUID Firebase UIDでユーザーを検索
-	FindByUID(ctx context.Context, uid string) (*User, error)
+	FindByUID(ctx context.Context, cond *User) (*User, error)
 	// FindAll 全ユーザーを取得
 	FindAll(ctx context.Context, opts *FindOptions) ([]*User, error)
 	// Update ユーザー情報を更新
 	Update(ctx context.Context, user *User) error
 	// Delete ユーザーを削除（論理削除）
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, cond *User) error
 }
 
 type FindOptions struct {
