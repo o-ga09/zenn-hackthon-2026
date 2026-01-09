@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { useRouter } from 'next/navigation'
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
 
@@ -32,11 +33,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   // 初期ロード時にユーザー情報を取得
   const fetchUser = async () => {
     try {
-      const response = await fetch(`${baseURL}/api/auth/user`)
+      const response = await fetch(`${baseURL}/api/auth/user`, { credentials: 'include' })
 
       if (response.ok) {
         const data = await response.json()
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // セッションクッキー作成
       const sessionRes = await fetch(`${baseURL}/api/auth/session`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_token: idToken }),
       })
@@ -72,15 +75,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!sessionRes.ok) throw new Error('Session creation failed')
 
       // ユーザーAPI確認
-      const userRes = await fetch(`${baseURL}/api/auth/user`)
+      let userRes: Response = await fetch(`${baseURL}/api/auth/user`, { credentials: 'include' })
 
       if (!userRes.ok) {
-        await fetch(`${baseURL}/api/auth/logout`, { method: 'POST' })
-        throw new Error('User not found in API')
+        // ユーザーを新規作成
+        userRes = await fetch(`${baseURL}/api/users`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: result.user.uid,
+            name: result.user.displayName,
+            type: 'general',
+            plan: 'free',
+          }),
+        })
       }
 
-      const userData = await userRes.json()
-      setUser(userData.user)
+      const userData: User = await userRes.json()
+      console.log('Logged in user data:', userData)
+      setUser(userData)
+      router.push(`/profile/${userData.id}`)
 
       // クライアント側のFirebase Authセッションをクリア
       await signOut(auth)

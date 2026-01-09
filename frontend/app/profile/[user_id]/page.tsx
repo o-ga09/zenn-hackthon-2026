@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { use } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import UserProfile from './_components/UserProfile'
 import TravelMemoryCard from './_components/TravelMemoryCard'
@@ -7,13 +7,20 @@ import { useGetUserById, useGetUserPhotoCount } from '@/api/userApi'
 import { useGetUserMemories } from '@/hooks/useUserData'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export default function UserProfilePage({ params }: { params: { user_id: string } }) {
+type UserProfilePageProps = {
+  params: Promise<{
+    user_id: string
+  }>
+}
+
+export default function UserProfilePage({ params }: UserProfilePageProps) {
+  const { user_id } = use(params)
   // ユーザー情報の取得
-  const { data: user, isLoading: isLoadingUser } = useGetUserById(params.user_id)
+  const { data: user, isLoading: isLoadingUser } = useGetUserById(user_id)
   // アップロード数の取得
-  const { data: photoCount } = useGetUserPhotoCount(params.user_id)
+  const { data: photoCount } = useGetUserPhotoCount(user_id)
   // メモリーの取得
-  const { data: memories, isLoading: isLoadingMemories } = useGetUserMemories(params.user_id)
+  const { data: memories, isLoading: isLoadingMemories } = useGetUserMemories(user_id)
 
   if (isLoadingUser) {
     return (
@@ -44,7 +51,7 @@ export default function UserProfilePage({ params }: { params: { user_id: string 
       {/* プロフィールセクション */}
       <div className="border-b">
         <UserProfile
-          userId={params.user_id}
+          userId={user_id}
           name={user.name}
           occupation={user.display_name || 'ユーザー'}
           avatarUrl={user.image_data || '/placeholder.webp'}

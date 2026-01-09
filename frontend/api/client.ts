@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { getAuth } from 'firebase/auth'
 
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+
 // ユーザーIDを格納するための変数
 let currentUserID: string | null = null
 
@@ -11,10 +13,11 @@ export const setCurrentUserID = (userID: string) => {
 
 // Axiosインスタンスを作成
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: `${baseURL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Cookieを送受信するために必要
 })
 
 // リクエストインターセプターでFirebaseの認証トークンをヘッダーに追加
