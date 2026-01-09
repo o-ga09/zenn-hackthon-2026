@@ -6,7 +6,7 @@ import React from 'react'
 
 export default function Statistics() {
   const { user } = useAuth()
-  const { data } = useGetUserPhotoCount(user?.userID || '')
+  const { data } = useGetUserPhotoCount(user?.id || '')
   return (
     <>
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">

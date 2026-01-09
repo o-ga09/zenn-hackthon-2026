@@ -24,7 +24,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
   if (isLoadingUser) {
     return (
-      <MainLayout title="読み込み中...">
+      <MainLayout>
         <div className="max-w-screen-lg mx-auto p-4">
           <div className="space-y-4">
             <Skeleton className="h-24 w-24 rounded-full" />
@@ -38,7 +38,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
   if (!user) {
     return (
-      <MainLayout title="ユーザーが見つかりません">
+      <MainLayout>
         <div className="max-w-screen-lg mx-auto p-4">
           <p>指定されたユーザーは存在しません。</p>
         </div>
@@ -47,7 +47,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   }
 
   return (
-    <MainLayout title={`${user.name}のプロフィール`}>
+    <MainLayout>
       {/* プロフィールセクション */}
       <div className="border-b">
         <UserProfile

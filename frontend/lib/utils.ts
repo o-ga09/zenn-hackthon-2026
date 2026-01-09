@@ -58,7 +58,7 @@ export function decodeBase64UTF8(str: string): string {
 /**
  * ユーザーデータをクッキーに安全に保存するためのエンコード
  */
-export function encodeUserDataForCookie(userData: any): string {
+export function encodeUserDataForCookie(userData: Record<string, unknown>): string {
   const jsonString = JSON.stringify(userData)
   return encodeBase64UTF8(jsonString)
 }
@@ -66,7 +66,7 @@ export function encodeUserDataForCookie(userData: any): string {
 /**
  * クッキーからユーザーデータを安全にデコード
  */
-export function decodeUserDataFromCookie(cookieValue: string): any {
+export function decodeUserDataFromCookie(cookieValue: string): Record<string, unknown> {
   const jsonString = decodeBase64UTF8(cookieValue)
   return JSON.parse(jsonString)
 }

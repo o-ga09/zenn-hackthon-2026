@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils'
 
 interface MainLayoutProps {
   children: ReactNode
-  title: string
   description?: string
   className?: string
   showHeader?: boolean
@@ -18,12 +17,10 @@ interface MainLayoutProps {
 
 export default function MainLayout({
   children,
-  title,
   description,
   className,
   showHeader = true,
   showFooter = true,
-  showTitle = true,
   bgClassName = 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100',
   disableBodyScroll = false,
 }: MainLayoutProps) {
@@ -49,17 +46,6 @@ export default function MainLayout({
       {showHeader && <CommonHeader />}
       {/* Main Content */}
       <main className={cn('container mx-auto px-4 py-6 md:py-8 flex-grow', className)}>
-        {/* Welcome Section */}
-        {showTitle && (
-          <div className="mb-4 md:mb-8">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 md:mb-2">
-              {title}
-            </h1>
-            {description && (
-              <p className="text-base md:text-lg lg:text-xl text-muted-foreground">{description}</p>
-            )}
-          </div>
-        )}
         {children}
       </main>
       {showFooter && <CommonFooter />}

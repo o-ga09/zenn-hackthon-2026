@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function DashboardPage() {
   return (
-    <MainLayout title="ダッシュボード" description="あなたの旅行動画を管理しましょう">
+    <MainLayout description="あなたの旅行動画を管理しましょう">
       <QuickAction />
       <RecentVideo />
     </MainLayout>

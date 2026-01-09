@@ -17,6 +17,7 @@ export default function CommonHeader() {
   const { user, logout } = useAuth()
   const router = useRouter()
 
+  console.log('Current User in Header:', user)
   const handleLogout = async () => {
     try {
       await logout()
@@ -88,7 +89,10 @@ export default function CommonHeader() {
                   {user ? (
                     <>
                       <DropdownMenuItem asChild className="focus:bg-gray-100 focus:outline-none">
-                        <Link href={`/${user.userID}`} className="w-full px-3 py-2 text-sm">
+                        <Link
+                          href={`/profile/${user.id}/setting`}
+                          className="w-full px-3 py-2 text-sm"
+                        >
                           ユーザー設定
                         </Link>
                       </DropdownMenuItem>

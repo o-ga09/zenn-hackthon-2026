@@ -15,13 +15,23 @@ export interface User {
 }
 
 export interface UserInput {
-  uid: string
-  id: string
-  name: string
-  displayName: string
+  uid?: string
+  id?: string
+  name?: string
+  type?: string
+  plan?: string
+  token_balance?: number
   image_data?: string
   birth_day?: string
   gender?: string
+}
+
+// バックエンド更新用の型
+export interface UserUpdateInput {
+  name?: string
+  type?: string
+  plan?: string
+  token_balance?: number
 }
 
 // フロントエンド内部での表現用

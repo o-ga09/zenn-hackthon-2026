@@ -103,11 +103,11 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
       // 実際の実装では、アップロードした写真の1枚目をサムネイルとして使用するか
       // プレースホルダー画像を使用する
       const thumbnailUrl = '/placeholder.webp' // 仮のプレースホルダー画像パス
-      console.log('サムネイルURL:', user.userID)
+      console.log('サムネイルURL:', user.id)
 
       // 1. 旅行情報を保存
       await createTravel({
-        userId: user.userID,
+        userId: user.id,
         title: formData.travelTitle,
         description: formData.travelDescription || '',
         startDate: formData.travelDate,

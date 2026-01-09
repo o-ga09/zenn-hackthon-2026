@@ -4,6 +4,7 @@ import NextTopLoader from 'nextjs-toploader'
 import { topLoaderConfig } from '@/lib/utils'
 import { ApiProvider } from '@/api/apiProvider'
 import { AuthProvider } from '@/context/authContext'
+import { Toaster } from '@/components/ui/sonner'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
@@ -88,6 +89,7 @@ export default function RootLayout({
           <AuthProvider>
             <NextTopLoader {...topLoaderConfig} />
             {children}
+            <Toaster />
           </AuthProvider>
         </ApiProvider>
       </body>

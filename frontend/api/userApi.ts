@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import apiClient from './client'
-import { User, UserInput, UserInputFrontend, UsersResponse } from './types'
+import { User, UserInput, UserInputFrontend, UserUpdateInput, UsersResponse } from './types'
 
 // キャッシュのキー
 export const USERS_QUERY_KEY = ['users']
@@ -91,7 +91,7 @@ export const useUpdateUser = (userId: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (userData: Partial<UserInput>): Promise<User> => {
+    mutationFn: async (userData: UserUpdateInput): Promise<User> => {
       const response = await apiClient.put(`/users/${userId}`, userData)
       return response.data
     },
