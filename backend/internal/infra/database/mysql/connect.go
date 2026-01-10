@@ -60,6 +60,16 @@ func Connect(ctx context.Context) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(100)          // 最大接続数
 	sqlDB.SetConnMaxLifetime(time.Hour) // 接続の最大生存期間
 
+	// ゼロ値自動omitプラグインを登録（他のプラグインより先に登録）
+	if err := db.Use(database.NewZeroValueOmitPlugin()); err != nil {
+		return nil, fmt.Errorf("failed to register zero value omit plugin: %w", err)
+	}
+
+	// 楽観ロックプラグインを登録（UUIDプラグインより先に登録）
+	if err := db.Use(database.NewOptimisticLockPlugin()); err != nil {
+		return nil, fmt.Errorf("failed to register optimistic lock plugin: %w", err)
+	}
+
 	// UUID自動付与プラグインを登録
 	if err := db.Use(database.NewUUIDPlugin()); err != nil {
 		return nil, fmt.Errorf("failed to register UUID plugin: %w", err)

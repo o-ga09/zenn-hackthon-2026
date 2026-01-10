@@ -95,28 +95,34 @@ func AuthMiddleware() echo.MiddlewareFunc {
 			var err error
 			ctx := c.Request().Context()
 
+			// ローカル環境の場合はテスト用UIDをセットして認証をスキップ
+			env := config.GetCtxEnv(ctx)
+			if env.Env == "local" {
+				ctx = Ctx.SetCtxFromUser(ctx, "local-test-uid")
+				c.SetRequest(c.Request().WithContext(ctx))
+				return next(c)
+			}
+
 			cookie, err := c.Cookie("__session")
 			if err != nil {
+				return errors.MakeAuthorizationError(ctx, "セッションCookieが見つかりません")
 			}
 
 			// Firebaseアプリケーションの取得
 			app, err := config.GetFirebaseApp(ctx)
 			if err != nil {
-				errors.MakeAuthorizationError(ctx, "認証サービスの初期化に失敗しました")
-				return nil
+				return errors.MakeAuthorizationError(ctx, "認証サービスの初期化に失敗しました")
 			}
 
 			client, err := app.Auth(ctx)
 			if err != nil {
-				errors.MakeAuthorizationError(ctx, "認証クライアントの初期化に失敗しました")
-				return nil
+				return errors.MakeAuthorizationError(ctx, "認証クライアントの初期化に失敗しました")
 			}
 
 			// セッションCookieの検証
 			sessionToken, err := client.VerifySessionCookie(ctx, cookie.Value)
 			if err != nil {
-				errors.MakeAuthorizationError(ctx, "無効なセッションCookieです")
-				return nil
+				return errors.MakeAuthorizationError(ctx, "無効なセッションCookieです")
 			}
 
 			ctx = c.Request().Context()

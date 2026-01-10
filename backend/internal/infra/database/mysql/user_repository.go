@@ -61,13 +61,7 @@ func (r *UserRepository) FindAll(ctx context.Context, opts *domain.FindOptions) 
 
 // Update ユーザー情報を更新
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
-	// 存在確認
-	if _, err := r.FindByID(ctx, user); err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
-	// 更新
-	if err := Ctx.GetDB(ctx).Save(user).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Updates(user).Error; err != nil {
 		return errors.Wrap(ctx, err)
 	}
 	return nil

@@ -152,7 +152,6 @@ func (s *AuthServer) GetUser(c echo.Context) error {
 	// AuthMiddlewareでセットされたUIDを取得
 	uid := Ctx.GetCtxFromUser(ctx)
 	if uid == "" {
-		errors.MakeAuthorizationError(ctx, "認証されていません")
 		return errors.MakeBusinessError(ctx, "認証されていません")
 	}
 

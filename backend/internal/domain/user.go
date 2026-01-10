@@ -7,11 +7,19 @@ import (
 
 type User struct {
 	BaseModel
-	UID          string        `gorm:"column:uid"`           // Firebase UID
-	Name         string        `gorm:"column:name"`          // Display name
-	Type         string        `gorm:"column:type"`          // User type: admin, tavinikkiy, tavinikkiy-agent
-	Plan         string        `gorm:"column:plan"`          // Subscription plan: free, premium
-	TokenBalance sql.NullInt64 `gorm:"column:token_balance"` // Token balance
+	UID            string         `gorm:"column:uid"`             // Firebase UID
+	Name           string         `gorm:"column:name"`            // Display name
+	Type           string         `gorm:"column:type"`            // User type: admin, tavinikkiy, tavinikkiy-agent
+	Plan           string         `gorm:"column:plan"`            // Subscription plan: free, premium
+	TokenBalance   sql.NullInt64  `gorm:"column:token_balance"`   // Token balance
+	IsPublic       sql.NullBool   `gorm:"column:is_public"`       // Is profile public
+	DisplayName    sql.NullString `gorm:"column:display_name"`    // Display name
+	Bio            sql.NullString `gorm:"column:bio"`             // Biography
+	ProfileImage   sql.NullString `gorm:"column:profile_image"`   // Profile image URL
+	BirthDay       sql.NullString `gorm:"column:birth_day"`       // Birth
+	Gender         sql.NullString `gorm:"column:gender"`          // Gender
+	FollowersCount sql.NullInt64  `gorm:"column:followers_count"` // Number of followers
+	FollowingCount sql.NullInt64  `gorm:"column:following_count"` // Number of following
 }
 
 // IUserRepository ユーザーリポジトリのインターフェース

@@ -48,11 +48,16 @@ var (
 	ErrInvalidTwitterID   = errors.New("不正なTwitterIDです。")
 	ErrInvalidGender      = errors.New("性別の値の範囲が不正です。")
 	ErrInvalidDateTime    = errors.New("日付のフォーマットが不正です。")
-	ErrInvalidProfileURL  = errors.New("不正なプロフィールURLです。")
-	ErrInvalidUserType    = errors.New("無効なユーザータイプフォーマットです。")
-	ErrFollowed           = errors.New("すでにフォロー済みです。")
-	ErrFollowSelf         = errors.New("自分自身をフォローすることはできません。")
-	ErrRequestNotNil      = errors.New("リクエストが正しくありません。")
+
+	// 楽観ロックエラー
+	ErrOptimisticLock  = errors.New("楽観ロックエラー：レコードが他のユーザーによって更新されています。")
+	ErrVersionNotFound = errors.New("バージョン情報が見つかりません。")
+
+	ErrInvalidProfileURL = errors.New("不正なプロフィールURLです。")
+	ErrInvalidUserType   = errors.New("無効なユーザータイプフォーマットです。")
+	ErrFollowed          = errors.New("すでにフォロー済みです。")
+	ErrFollowSelf        = errors.New("自分自身をフォローすることはできません。")
+	ErrRequestNotNil     = errors.New("リクエストが正しくありません。")
 
 	// ulidエラー
 	ErrEmptyULID   = errors.New("empty ulid")
@@ -84,7 +89,7 @@ var (
 )
 
 // ginのcontextに認証エラーをセットして、ログ出力する
-func MakeAuthorizationError(ctx context.Context, msg string) {
+func MakeAuthorizationError(ctx context.Context, msg string) error {
 	var wrapped error
 	if msg == "" {
 		wrapped = failure.Translate(ErrAuthorized, ErrTypeUnAuthorized)
@@ -95,6 +100,7 @@ func MakeAuthorizationError(ctx context.Context, msg string) {
 	stack := getCallstack(wrapped)
 	errMessage := GetMessage(wrapped)
 	logger.Warn(ctx, errMessage, callStack, stack)
+	return wrapped
 }
 
 // ginのcontextに認可エラーをセットして、ログ出力する

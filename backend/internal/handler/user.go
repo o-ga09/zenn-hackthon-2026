@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -131,12 +130,7 @@ func (s *UserServer) Create(c echo.Context) error {
 	}
 
 	// ユーザー作成
-	user := &domain.User{
-		UID:  req.UID,
-		Name: req.Name,
-		Type: req.Type,
-		Plan: req.Plan,
-	}
+	user := req.ToUser()
 
 	// プランに応じた初期トークン残高設定
 	if req.Plan == constant.UserPlanFree {
@@ -166,30 +160,22 @@ func (s *UserServer) Update(c echo.Context) error {
 	}
 
 	// 既存ユーザーの取得
-	user, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: req.ID}})
+	_, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: req.ID}})
+	if err != nil {
+		return errors.MakeNotFoundError(ctx, "指定されたユーザーは存在しません")
+	}
+
+	updateUser := req.ToUser()
+	if err := s.repo.Update(ctx, updateUser); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	updatedUser, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: updateUser.ID}})
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
-	// 更新内容を反映
-	if req.Name != nil {
-		user.Name = *req.Name
-	}
-	if req.Type != nil {
-		user.Type = *req.Type
-	}
-	if req.Plan != nil {
-		user.Plan = *req.Plan
-	}
-	if req.TokenBalance != nil {
-		user.TokenBalance = sql.NullInt64{Int64: *req.TokenBalance, Valid: true}
-	}
-
-	if err := s.repo.Update(ctx, user); err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
-	return c.JSON(http.StatusOK, response.ToResponse(user))
+	return c.JSON(http.StatusOK, response.ToResponse(updatedUser))
 }
 
 // Delete ユーザー削除

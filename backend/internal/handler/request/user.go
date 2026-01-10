@@ -1,6 +1,15 @@
 package request
 
-import "github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+import (
+	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+	nullvalue "github.com/o-ga09/zenn-hackthon-2026/pkg/null_value"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
+)
+
+const (
+	DefaultType = "tavinikkiy-agent"
+	DefaultPan  = "free"
+)
 
 // ListQuery ユーザー一覧取得のクエリパラメータ
 type ListQuery struct {
@@ -20,19 +29,38 @@ type GetByUIDQuery struct {
 
 // CreateUserRequest ユーザー作成リクエスト
 type CreateUserRequest struct {
-	UID  string `json:"uid" validate:"required,min=1,max=255"`
-	Name string `json:"name" validate:"required,min=1,max=100"`
-	Type string `json:"type" validate:"required"`
-	Plan string `json:"plan" validate:"required"`
+	Plan           string  `json:"plan,omitempty" validate:"required"`
+	Type           string  `json:"type,omitempty" validate:"required"`
+	UID            string  `json:"uid,omitempty" validate:"required,min=1,max=255"`
+	Name           *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
+	TokenBalance   *int64  `json:"token_balance,omitempty" validate:"omitempty,gte=0"`
+	IsPublic       *bool   `json:"is_public,omitempty" validate:"omitempty"`
+	DisplayName    *string `json:"display_name,omitempty" validate:"omitempty,min=1,max=100"`
+	Bio            *string `json:"bio,omitempty" validate:"omitempty,max=500"`
+	ProfileImage   *string `json:"profile_image,omitempty" validate:"omitempty,url"`
+	BirthDay       *string `json:"birth_day,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	Gender         *string `json:"gender,omitempty" validate:"omitempty"`
+	FollowersCount *int    `json:"followers_count,omitempty" validate:"omitempty"`
+	FollowingCount *int    `json:"following_count,omitempty" validate:"omitempty"`
 }
 
 // UpdateUserRequest ユーザー更新リクエスト
 type UpdateUserRequest struct {
-	ID           string  `param:"id" validate:"required,gte=1"`
-	Name         *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
-	Type         *string `json:"type,omitempty" validate:"omitempty"`
-	Plan         *string `json:"plan,omitempty" validate:"omitempty"`
-	TokenBalance *int64  `json:"token_balance,omitempty" validate:"omitempty,gte=0"`
+	ID             string  `param:"id" validate:"required,gte=1"`
+	Version        int     `json:"version" validate:"required"`
+	Plan           string  `json:"plan,omitempty" validate:"required"`
+	Type           string  `json:"type,omitempty" validate:"required"`
+	UID            string  `json:"uid,omitempty" validate:"required,min=1,max=255"`
+	Name           *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
+	TokenBalance   *int64  `json:"token_balance,omitempty" validate:"omitempty,gte=0"`
+	IsPublic       *bool   `json:"is_public,omitempty" validate:"omitempty"`
+	DisplayName    *string `json:"display_name,omitempty" validate:"omitempty,min=1,max=100"`
+	Bio            *string `json:"bio,omitempty" validate:"omitempty,max=500"`
+	ProfileImage   *string `json:"profile_image,omitempty" validate:"omitempty,url"`
+	BirthDay       *string `json:"birth_day,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	Gender         *string `json:"gender,omitempty" validate:"omitempty"`
+	FollowersCount *int    `json:"followers_count,omitempty" validate:"omitempty"`
+	FollowingCount *int    `json:"following_count,omitempty" validate:"omitempty"`
 }
 
 // DeleteUserParam ユーザー削除のパスパラメータ
@@ -40,11 +68,48 @@ type DeleteUserParam struct {
 	ID string `param:"id" validate:"required,gte=1"`
 }
 
-func ToUser(req *CreateUserRequest) *domain.User {
+func (req *CreateUserRequest) ToUser() *domain.User {
+
+	// TODO: 共通処理化
+	// UIDの先頭10文字をNameに設定
+	name := req.UID
+	if len(req.UID) > 10 {
+		req.UID = req.UID[:10]
+	}
+
 	return &domain.User{
-		UID:  req.UID,
-		Name: req.Name,
-		Type: req.Type,
-		Plan: req.Plan,
+		UID:            req.UID,
+		Name:           name,
+		Type:           DefaultType,
+		Plan:           DefaultPan,
+		IsPublic:       nullvalue.ToNullBool(false),
+		DisplayName:    ptr.PtrStringToNullString(req.DisplayName),
+		Bio:            ptr.PtrStringToNullString(req.Bio),
+		ProfileImage:   ptr.PtrStringToNullString(req.ProfileImage),
+		BirthDay:       ptr.PtrStringToNullString(req.BirthDay),
+		Gender:         ptr.PtrStringToNullString(req.Gender),
+		FollowersCount: ptr.PtrIntToNullInt64(req.FollowersCount),
+		FollowingCount: ptr.PtrIntToNullInt64(req.FollowingCount),
+	}
+}
+
+func (req *UpdateUserRequest) ToUser() *domain.User {
+	return &domain.User{
+		BaseModel: domain.BaseModel{
+			ID:      req.ID,
+			Version: req.Version,
+		},
+		UID:            req.UID,
+		Name:           ptr.PtrToString(req.Name),
+		Type:           req.Type,
+		Plan:           req.Plan,
+		IsPublic:       ptr.PtrBoolToNullBool(req.IsPublic),
+		DisplayName:    ptr.PtrStringToNullString(req.DisplayName),
+		Bio:            ptr.PtrStringToNullString(req.Bio),
+		ProfileImage:   ptr.PtrStringToNullString(req.ProfileImage),
+		BirthDay:       ptr.PtrStringToNullString(req.BirthDay),
+		Gender:         ptr.PtrStringToNullString(req.Gender),
+		FollowersCount: ptr.PtrIntToNullInt64(req.FollowersCount),
+		FollowingCount: ptr.PtrIntToNullInt64(req.FollowingCount),
 	}
 }
