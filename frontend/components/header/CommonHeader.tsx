@@ -78,7 +78,7 @@ export default function CommonHeader() {
                     />
                   ) : (
                     <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                      {user.displayname ? user.displayname.charAt(0) : 'U'}
+                      {user.displayName ? user.displayName.charAt(0) : 'U'}
                     </span>
                   )}
                 </DropdownMenuTrigger>
@@ -90,7 +90,7 @@ export default function CommonHeader() {
                     <>
                       <DropdownMenuItem asChild className="focus:bg-gray-100 focus:outline-none">
                         <Link
-                          href={`/profile/${user.id}/setting`}
+                          href={`/profile/${user.name}/setting`}
                           className="w-full px-3 py-2 text-sm"
                         >
                           ユーザー設定

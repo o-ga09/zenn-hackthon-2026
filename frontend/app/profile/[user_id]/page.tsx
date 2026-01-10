@@ -3,25 +3,19 @@ import React, { use } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import UserProfile from './_components/UserProfile'
 import TravelMemoryCard from './_components/TravelMemoryCard'
-import { useGetUserById, useGetUserPhotoCount } from '@/api/userApi'
+import { useGetUserById, useGetUserPhotoCount } from '@/api/user'
 import { useGetUserMemories } from '@/hooks/useUserData'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/context/authContext'
 
-type UserProfilePageProps = {
-  params: Promise<{
-    user_id: string
-  }>
-}
-
-export default function UserProfilePage({ params }: UserProfilePageProps) {
-  const { user_id } = use(params)
+export default function UserProfilePage() {
+  const { user } = useAuth()
   // ユーザー情報の取得
-  const { data: user, isLoading: isLoadingUser } = useGetUserById(user_id)
+  const { data: userData, isLoading: isLoadingUser } = useGetUserById(user?.id || '')
   // アップロード数の取得
-  const { data: photoCount } = useGetUserPhotoCount(user_id)
+  const { data: photoCount } = useGetUserPhotoCount(user?.id || '')
   // メモリーの取得
-  const { data: memories, isLoading: isLoadingMemories } = useGetUserMemories(user_id)
-
+  const { data: memories, isLoading: isLoadingMemories } = useGetUserMemories(user?.id || '')
   if (isLoadingUser) {
     return (
       <MainLayout>
@@ -51,14 +45,14 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       {/* プロフィールセクション */}
       <div className="border-b">
         <UserProfile
-          userId={user_id}
-          name={user.name}
-          occupation={user.display_name || 'ユーザー'}
-          avatarUrl={user.image_data || '/placeholder.webp'}
-          bio={user.bio || ''}
+          userId={userData?.id || ''}
+          name={userData?.displayName ?? ''}
+          occupation={userData?.name || 'ユーザー'}
+          avatarUrl={userData?.imageData || '/placeholder.webp'}
+          bio={userData?.bio || ''}
           totalMemories={photoCount?.videoCount || 0}
-          followers={user.followers_count || 0}
-          following={user.following_count || 0}
+          followers={userData?.followersCount || 0}
+          following={userData?.followingCount || 0}
         />
       </div>
 

@@ -4,21 +4,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useRouter } from 'next/navigation'
+import { User } from '@/api/user'
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
-
-type User = {
-  id: string
-  uid: string
-  type: string
-  name: string
-  token_balance: number
-  username?: string
-  photoURL?: string
-  displayname?: string
-  created_at: string
-  updated_at: string
-}
 
 type AuthContextType = {
   user: User | null
@@ -76,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // ユーザーAPI確認
       let userRes: Response = await fetch(`${baseURL}/api/auth/user`, { credentials: 'include' })
+      console.log('User fetch response status:', userRes.status)
 
       if (!userRes.ok) {
         // ユーザーを新規作成
@@ -85,9 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             uid: result.user.uid,
-            name: result.user.displayName,
-            type: 'general',
-            plan: 'free',
+            display_name: result.user.displayName,
+            profile_image_url: result.user.photoURL,
           }),
         })
       }
@@ -95,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData: User = await userRes.json()
       console.log('Logged in user data:', userData)
       setUser(userData)
-      router.push(`/profile/${userData.id}`)
+      router.push(`/profile/${userData.name}`)
 
       // クライアント側のFirebase Authセッションをクリア
       await signOut(auth)

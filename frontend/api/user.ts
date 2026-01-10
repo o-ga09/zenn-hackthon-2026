@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import apiClient from './client'
-import { User, UserInput, UserInputFrontend, UserUpdateInput, UsersResponse } from './types'
+import z from 'zod'
 
 // キャッシュのキー
 export const USERS_QUERY_KEY = ['users']
@@ -13,7 +13,7 @@ export const USER_PHOTO_COUNT_QUERY_KEY = (userId: string) => ['users', userId, 
 export const useGetUsers = () => {
   return useQuery({
     queryKey: USERS_QUERY_KEY,
-    queryFn: async (): Promise<UsersResponse> => {
+    queryFn: async (): Promise<User[]> => {
       const response = await apiClient.get('/users')
       return response.data
     },
@@ -59,17 +59,17 @@ export const useCreateUser = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (userData: UserInput | UserInputFrontend): Promise<User> => {
+    mutationFn: async (userData: User): Promise<User> => {
       // フロントエンドの形式をAPIの形式に変換
       const apiUserData =
         'firebase_id' in userData
           ? {
               uid: userData.firebase_id,
-              id: userData.name, // フォームのname = ID
+              id: userData.id, // フォームのname = ID
               name: userData.name, // nameフィールドも送信
-              displayName: userData.display_name,
-              ...(userData.image_data && { image_data: userData.image_data }),
-              ...(userData.birth_day && { birth_day: userData.birth_day }),
+              displayName: userData.displayName,
+              ...(userData.imageData && { imageData: userData.imageData }),
+              ...(userData.birthday && { birthday: userData.birthday }),
               ...(userData.gender && { gender: userData.gender }),
             }
           : userData
@@ -91,14 +91,14 @@ export const useUpdateUser = (userId: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (userData: UserUpdateInput): Promise<User> => {
+    mutationFn: async (userData: User): Promise<User> => {
       const response = await apiClient.put(`/users/${userId}`, userData)
       return response.data
     },
     // ミューテーション成功後に関連するキャッシュを無効化
     onSuccess: (data: User) => {
       queryClient.invalidateQueries({ queryKey: USER_QUERY_KEY(userId) })
-      queryClient.invalidateQueries({ queryKey: FIREBASE_USER_QUERY_KEY(data.firebase_id) })
+      queryClient.invalidateQueries({ queryKey: FIREBASE_USER_QUERY_KEY(data.uid) })
       queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
     },
   })
@@ -139,3 +139,34 @@ export const useGetUserPhotoCount = (userId: string) => {
     enabled: !!userId,
   })
 }
+
+export type User = {
+  id: string
+  version: number
+  uid: string
+  type: string
+  tokenBalance: number
+  name?: string
+  photoURL?: string
+  displayName?: string
+  bio?: string
+  plan: string
+  imageData?: string
+  birthday?: string
+  gender?: string
+  followersCount: number
+  followingCount: number
+  isPublic?: boolean
+  created_at: string
+  updated_at: string
+}
+// バリデーションスキーマ
+export const profileFormSchema = z.object({
+  displayName: z
+    .string()
+    .min(1, 'ユーザー名は必須です')
+    .max(50, 'ユーザー名は50文字以内で入力してください'),
+  isPublic: z.boolean().optional(),
+})
+
+export type ProfileFormData = z.infer<typeof profileFormSchema>

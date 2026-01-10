@@ -1,5 +1,5 @@
 'use client'
-import { useGetUserPhotoCount } from '@/api/userApi'
+import { useGetUserPhotoCount } from '@/api/user'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { useAuth } from '@/context/authContext'
 import React from 'react'

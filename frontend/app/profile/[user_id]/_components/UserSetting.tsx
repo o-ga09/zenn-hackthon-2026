@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,56 +20,48 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { useUpdateUser } from '@/api/userApi'
+import { ProfileFormData, profileFormSchema, useUpdateUser } from '@/api/user'
 import { User, Mail, Coins, Globe, Lock, Save, X, Edit, Loader2 } from 'lucide-react'
 
-// バリデーションスキーマ
-const profileFormSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'ユーザー名は必須です')
-    .max(50, 'ユーザー名は50文字以内で入力してください'),
-})
-
-type ProfileFormData = z.infer<typeof profileFormSchema>
-
 export default function UserSetting() {
-  const { user } = useAuth()
-  const [isPublicProfile, setIsPublicProfile] = useState(true)
+  const { user, refetchUser } = useAuth()
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isEditingPrivacy, setIsEditingPrivacy] = useState(false)
 
-  // プロフィール更新用のフォーム
+  // プロフィール更新用のフォーム（プライバシー設定も含む）
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || '',
+      displayName: user?.displayName || '',
+      isPublic: user?.isPublic || false,
     },
   })
+
+  // ユーザーデータが更新された時にフォームのデフォルト値を更新
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        displayName: user.displayName || '',
+        isPublic: user.isPublic || false,
+      })
+    }
+  }, [user, form])
 
   // ユーザー更新のミューテーション
   const updateUser = useUpdateUser(user?.id || '')
 
-  // ユーザー情報が変更された時にフォームのデフォルト値を更新
-  useEffect(() => {
-    if (user) {
-      form.reset({
-        name: user.name || '',
-      })
-      // TODO: プライバシー設定をAPIから取得する場合は、ここで設定
-      // setIsPublicProfile(user.is_public || false)
-    }
-  }, [user, form])
-
   // プロフィール情報の更新処理
   const onSubmitProfile = async (data: ProfileFormData) => {
+    if (!user) return
     try {
       await updateUser.mutateAsync({
-        name: data.name,
+        ...user,
+        displayName: data.displayName,
+        isPublic: data.isPublic,
       })
 
       toast.success('プロフィールを更新しました')
-
+      refetchUser()
       setIsEditingProfile(false)
     } catch {
       toast.error('プロフィールの更新に失敗しました')
@@ -78,16 +69,16 @@ export default function UserSetting() {
   }
 
   // プライバシー設定の更新処理
-  const updatePrivacySetting = async (newPublicState: boolean) => {
+  const onSubmitPrivacy = async (data: ProfileFormData) => {
     try {
-      // TODO: プライバシー設定をAPIで更新する場合は、ここで実装
-      // await updateUser.mutateAsync({
-      //   is_public: newPublicState,
-      // })
+      if (!user) return
+      await updateUser.mutateAsync({
+        ...user,
+        isPublic: data.isPublic,
+      })
 
-      setIsPublicProfile(newPublicState)
       setIsEditingPrivacy(false)
-
+      refetchUser()
       toast.success('プライバシー設定を更新しました')
     } catch {
       toast.error('プライバシー設定の更新に失敗しました')
@@ -148,8 +139,8 @@ export default function UserSetting() {
                 <AvatarFallback className="text-xl">{user.name?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-semibold truncate">{user.name || 'ユーザー'}</h3>
-                <p className="text-gray-600 text-sm truncate">@{user.username || user.id}</p>
+                <h3 className="text-xl font-semibold truncate">{user.displayName || 'ユーザー'}</h3>
+                <p className="text-gray-600 text-sm truncate">@{user.name || user.id}</p>
               </div>
             </div>
 
@@ -158,7 +149,7 @@ export default function UserSetting() {
                 <form onSubmit={form.handleSubmit(onSubmitProfile)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="displayName"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>ユーザー名</FormLabel>
@@ -208,7 +199,11 @@ export default function UserSetting() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
-                {isPublicProfile ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {form.watch('isPublic') ? (
+                  <Globe className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
                 プライバシー設定
               </CardTitle>
               {!isEditingPrivacy && (
@@ -224,51 +219,75 @@ export default function UserSetting() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">プロフィール公開</Label>
-                <p className="text-xs text-gray-500">
-                  {isPublicProfile
-                    ? '他のユーザーがあなたのプロフィールを閲覧できます'
-                    : 'プロフィールは非公開に設定されています'}
-                </p>
-              </div>
-              {isEditingPrivacy ? (
-                <div className="flex items-center gap-2">
-                  <Switch checked={isPublicProfile} onCheckedChange={setIsPublicProfile} />
-                </div>
-              ) : (
-                <Switch checked={isPublicProfile} disabled />
-              )}
-            </div>
+            {isEditingPrivacy ? (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmitPrivacy)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="isPublic"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <FormLabel className="text-sm font-medium">プロフィール公開</FormLabel>
+                            <p className="text-xs text-gray-500">
+                              {field.value
+                                ? '他のユーザーがあなたのプロフィールを閲覧できます'
+                                : 'プロフィールは非公開に設定されています'}
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-            {isEditingPrivacy && (
-              <div className="flex gap-2 pt-2">
-                <Button
-                  size="sm"
-                  onClick={() => updatePrivacySetting(isPublicProfile)}
-                  disabled={updateUser.isPending}
-                  className="flex items-center gap-2"
-                >
-                  {updateUser.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  保存
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsEditingPrivacy(false)
-                    // 元の設定に戻す（TODO: APIから取得）
-                    setIsPublicProfile(true)
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                  キャンセル
-                </Button>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={updateUser.isPending}
+                      className="flex items-center gap-2"
+                    >
+                      {updateUser.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      保存
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingPrivacy(false)
+                        form.reset({
+                          displayName: user?.displayName || '',
+                          isPublic: user?.isPublic || false,
+                        })
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      キャンセル
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">プロフィール公開</Label>
+                  <p className="text-xs text-gray-500">
+                    {form.watch('isPublic')
+                      ? '他のユーザーがあなたのプロフィールを閲覧できます'
+                      : 'プロフィールは非公開に設定されています'}
+                  </p>
+                </div>
+                <Switch checked={form.watch('isPublic')} disabled />
               </div>
             )}
           </CardContent>
@@ -295,7 +314,7 @@ export default function UserSetting() {
                 <Label className="text-sm font-medium">残りトークン</Label>
               </div>
               <span className="text-sm font-mono">
-                {user.token_balance?.toLocaleString() || '0'}
+                {user.tokenBalance?.toLocaleString() || '0'}
               </span>
             </div>
           </CardContent>
