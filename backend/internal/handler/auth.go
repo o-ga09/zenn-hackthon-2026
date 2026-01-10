@@ -21,12 +21,14 @@ type IAuthServer interface {
 }
 
 type AuthServer struct {
-	repo domain.IUserRepository
+	repo    domain.IUserRepository
+	storage domain.IUserStorage
 }
 
-func NewAuthServer(repo domain.IUserRepository) IAuthServer {
+func NewAuthServer(repo domain.IUserRepository, storage domain.IUserStorage) IAuthServer {
 	return &AuthServer{
-		repo: repo,
+		repo:    repo,
+		storage: storage,
 	}
 }
 
@@ -162,6 +164,13 @@ func (s *AuthServer) GetUser(c echo.Context) error {
 			return errors.MakeNotFoundError(ctx, "ユーザーが見つかりません")
 		}
 		return errors.Wrap(ctx, err)
+	}
+
+	if user.ProfileImage.Valid {
+		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
+		if err != nil {
+			return errors.Wrap(ctx, err)
+		}
 	}
 
 	return c.JSON(http.StatusOK, response.ToResponse(user))

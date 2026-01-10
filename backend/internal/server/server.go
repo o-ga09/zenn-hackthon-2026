@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +14,8 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
@@ -24,9 +27,14 @@ type Server struct {
 }
 
 func New(ctx context.Context) *Server {
+	env := config.GetCtxEnv(ctx)
 	// ハンドラーの初期化
-	userHandler := handler.NewUserServer(&mysql.UserRepository{})
-	authHandler := handler.NewAuthServer(&mysql.UserRepository{})
+	r2Storage, err := storage.NewCloudflareR2Storage(ctx, env.CLOUDFLARE_R2_ACCOUNT_ID, env.CLOUDFLARE_R2_ACCESSKEY, env.CLOUDFLARE_R2_SECRETKEY, env.CLOUDFLARE_R2_BUCKET_NAME)
+	if err != nil {
+		log.Fatal(err)
+	}
+	userHandler := handler.NewUserServer(&mysql.UserRepository{}, r2Storage)
+	authHandler := handler.NewAuthServer(&mysql.UserRepository{}, r2Storage)
 
 	// Echoインスタンス作成
 	e := echo.New()

@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
@@ -24,12 +26,14 @@ type IUserServer interface {
 }
 
 type UserServer struct {
-	repo domain.IUserRepository
+	repo    domain.IUserRepository
+	storage domain.IUserStorage
 }
 
-func NewUserServer(repo domain.IUserRepository) IUserServer {
+func NewUserServer(repo domain.IUserRepository, storage domain.IUserStorage) IUserServer {
 	return &UserServer{
-		repo: repo,
+		repo:    repo,
+		storage: storage,
 	}
 }
 
@@ -84,6 +88,13 @@ func (s *UserServer) GetByID(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
+	if user.ProfileImage.Valid {
+		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
+		if err != nil {
+			return errors.Wrap(ctx, err)
+		}
+	}
+
 	return c.JSON(http.StatusOK, response.ToResponse(user))
 }
 
@@ -104,6 +115,13 @@ func (s *UserServer) GetByUID(c echo.Context) error {
 	user, err := s.repo.FindByUID(ctx, &domain.User{UID: query.UID})
 	if err != nil {
 		return errors.Wrap(ctx, err)
+	}
+
+	if user.ProfileImage.Valid {
+		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
+		if err != nil {
+			return errors.Wrap(ctx, err)
+		}
 	}
 
 	return c.JSON(http.StatusOK, response.ToResponse(user))
@@ -166,13 +184,28 @@ func (s *UserServer) Update(c echo.Context) error {
 	}
 
 	updateUser := req.ToUser()
+	if req.ProfileImage != nil && !strings.HasPrefix(*req.ProfileImage, "https://") {
+		key, err := s.storage.Upload(ctx, fmt.Sprintf("profile_images/%s", updateUser.Name), *req.ProfileImage)
+		if err != nil {
+			return errors.Wrap(ctx, err)
+		}
+		updateUser.ProfileImage = nullvalue.ToNullString(key)
+	}
 	if err := s.repo.Update(ctx, updateUser); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
+	// TODO:トランザクション管理をする
 	updatedUser, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: updateUser.ID}})
 	if err != nil {
 		return errors.Wrap(ctx, err)
+	}
+
+	if updateUser.ProfileImage.Valid {
+		updateUser.ProfileImage.String, err = s.storage.Get(ctx, updateUser.ProfileImage.String)
+		if err != nil {
+			return errors.Wrap(ctx, err)
+		}
 	}
 
 	return c.JSON(http.StatusOK, response.ToResponse(updatedUser))

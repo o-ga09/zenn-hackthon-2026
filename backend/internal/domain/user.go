@@ -38,6 +38,15 @@ type IUserRepository interface {
 	Delete(ctx context.Context, cond *User) error
 }
 
+type IUserStorage interface {
+	// Upload uploads base64 encoded file to cloud storage and returns the URL and Base64 encoded string
+	Upload(ctx context.Context, key string, base64Data string) (string, error)
+	// Delete deletes file from cloud storage
+	Delete(ctx context.Context, key string) error
+	// Get gets file from cloud storage and returns the file content and Base64 encoded string
+	Get(ctx context.Context, key string) (string, error)
+}
+
 type FindOptions struct {
 	Limit  int
 	Offset int
