@@ -48,7 +48,7 @@ export default function UserProfilePage() {
           userId={userData?.id || ''}
           name={userData?.displayName ?? ''}
           occupation={userData?.name || 'ユーザー'}
-          avatarUrl={userData?.imageData || '/placeholder.webp'}
+          avatarUrl={userData?.profileImage || '/placeholder.webp'}
           bio={userData?.bio || ''}
           totalMemories={photoCount?.videoCount || 0}
           followers={userData?.followersCount || 0}

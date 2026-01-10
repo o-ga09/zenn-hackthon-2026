@@ -68,12 +68,12 @@ export default function CommonHeader() {
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  {user.photoURL ? (
+                  {user.profileImage ? (
                     <Image
-                      src={user?.photoURL || '/no-avatar.webp'}
+                      src={user?.profileImage || '/no-avatar.webp'}
                       alt="User Profile"
-                      width={40}
-                      height={40}
+                      width={50}
+                      height={50}
                       className="rounded-full"
                     />
                   ) : (
@@ -88,6 +88,11 @@ export default function CommonHeader() {
                 >
                   {user ? (
                     <>
+                      <DropdownMenuItem asChild className="focus:bg-gray-100 focus:outline-none">
+                        <Link href={`/profile/${user.name}`} className="w-full px-3 py-2 text-sm">
+                          プロフィール設定
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem asChild className="focus:bg-gray-100 focus:outline-none">
                         <Link
                           href={`/profile/${user.name}/setting`}

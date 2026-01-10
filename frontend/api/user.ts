@@ -68,7 +68,7 @@ export const useCreateUser = () => {
               id: userData.id, // フォームのname = ID
               name: userData.name, // nameフィールドも送信
               displayName: userData.displayName,
-              ...(userData.imageData && { imageData: userData.imageData }),
+              ...(userData.profileImage && { profileImage: userData.profileImage }),
               ...(userData.birthday && { birthday: userData.birthday }),
               ...(userData.gender && { gender: userData.gender }),
             }
@@ -147,11 +147,10 @@ export type User = {
   type: string
   tokenBalance: number
   name?: string
-  photoURL?: string
   displayName?: string
   bio?: string
   plan: string
-  imageData?: string
+  profileImage?: string
   birthday?: string
   gender?: string
   followersCount: number
@@ -167,6 +166,7 @@ export const profileFormSchema = z.object({
     .min(1, 'ユーザー名は必須です')
     .max(50, 'ユーザー名は50文字以内で入力してください'),
   isPublic: z.boolean().optional(),
+  profileImage: z.string().optional(),
 })
 
 export type ProfileFormData = z.infer<typeof profileFormSchema>

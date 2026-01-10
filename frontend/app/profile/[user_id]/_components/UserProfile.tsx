@@ -14,7 +14,6 @@ type UserProfileProps = {
 }
 
 export default function UserProfile({
-  userId,
   name,
   avatarUrl,
   bio,

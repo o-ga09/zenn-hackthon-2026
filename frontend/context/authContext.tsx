@@ -74,8 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             uid: result.user.uid,
-            display_name: result.user.displayName,
-            profile_image_url: result.user.photoURL,
+            displayName: result.user.displayName,
+            profileImage: result.user.photoURL,
           }),
         })
       }

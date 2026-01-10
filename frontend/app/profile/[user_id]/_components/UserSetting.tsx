@@ -21,12 +21,25 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { ProfileFormData, profileFormSchema, useUpdateUser } from '@/api/user'
-import { User, Mail, Coins, Globe, Lock, Save, X, Edit, Loader2 } from 'lucide-react'
+import {
+  User,
+  Mail,
+  Coins,
+  Globe,
+  Lock,
+  Save,
+  X,
+  Edit,
+  Loader2,
+  Camera,
+  Upload,
+} from 'lucide-react'
 
 export default function UserSetting() {
   const { user, refetchUser } = useAuth()
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isEditingPrivacy, setIsEditingPrivacy] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   // プロフィール更新用のフォーム（プライバシー設定も含む）
   const form = useForm<ProfileFormData>({
@@ -34,6 +47,7 @@ export default function UserSetting() {
     defaultValues: {
       displayName: user?.displayName || '',
       isPublic: user?.isPublic || false,
+      profileImage: user?.profileImage || '',
     },
   })
 
@@ -43,12 +57,40 @@ export default function UserSetting() {
       form.reset({
         displayName: user.displayName || '',
         isPublic: user.isPublic || false,
+        profileImage: user.profileImage || '',
       })
+      setImagePreview(null) // プレビューをリセット
     }
   }, [user, form])
 
   // ユーザー更新のミューテーション
   const updateUser = useUpdateUser(user?.id || '')
+
+  // ファイルアップロード処理
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // ファイルサイズをチェック (5MB以下)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('ファイルサイズは5MB以下にしてください')
+        return
+      }
+
+      // ファイルタイプをチェック
+      if (!file.type.startsWith('image/')) {
+        toast.error('画像ファイルを選択してください')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = e => {
+        const imageData = e.target?.result as string
+        setImagePreview(imageData)
+        form.setValue('profileImage', imageData)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   // プロフィール情報の更新処理
   const onSubmitProfile = async (data: ProfileFormData) => {
@@ -58,11 +100,13 @@ export default function UserSetting() {
         ...user,
         displayName: data.displayName,
         isPublic: data.isPublic,
+        ...(data.profileImage && { profileImage: data.profileImage }),
       })
 
       toast.success('プロフィールを更新しました')
       refetchUser()
       setIsEditingProfile(false)
+      setImagePreview(null) // プレビューをリセット
     } catch {
       toast.error('プロフィールの更新に失敗しました')
     }
@@ -134,10 +178,26 @@ export default function UserSetting() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={user.photoURL || ''} alt={user.name || ''} />
-                <AvatarFallback className="text-xl">{user.name?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage
+                    src={imagePreview || user.profileImage || ''}
+                    alt={user.name || ''}
+                  />
+                  <AvatarFallback className="text-xl">{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                {isEditingProfile && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
+                    <Camera className="h-6 w-6 text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-xl font-semibold truncate">{user.displayName || 'ユーザー'}</h3>
                 <p className="text-gray-600 text-sm truncate">@{user.name || user.id}</p>
@@ -147,6 +207,51 @@ export default function UserSetting() {
             {isEditingProfile && (
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmitProfile)} className="space-y-4">
+                  {/* プロフィール画像アップロード */}
+                  <FormField
+                    control={form.control}
+                    name="profileImage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>プロフィール画像</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                              />
+                            </div>
+                            {imagePreview && (
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={imagePreview} alt="プレビュー" />
+                                </Avatar>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setImagePreview(null)
+                                    form.setValue('profileImage', '')
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <p className="text-xs text-gray-500">
+                          JPEG, PNG, GIF形式で、5MB以下のファイルを選択してください
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="displayName"
@@ -181,7 +286,12 @@ export default function UserSetting() {
                       size="sm"
                       onClick={() => {
                         setIsEditingProfile(false)
-                        form.reset()
+                        setImagePreview(null)
+                        form.reset({
+                          displayName: user?.displayName || '',
+                          isPublic: user?.isPublic || false,
+                          profileImage: user?.profileImage || '',
+                        })
                       }}
                     >
                       <X className="h-4 w-4" />
