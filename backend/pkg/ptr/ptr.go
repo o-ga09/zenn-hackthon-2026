@@ -24,6 +24,10 @@ func Int64ToPtr(i int64) *int {
 	return &i2
 }
 
+func BoolToPtr(b bool) *bool {
+	return &b
+}
+
 func PtrToInt(i *int) int {
 	if i == nil {
 		return 0

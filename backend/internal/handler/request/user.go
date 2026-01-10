@@ -8,7 +8,7 @@ import (
 
 const (
 	DefaultType = "tavinikkiy-agent"
-	DefaultPan  = "free"
+	DefaultPlan = "free"
 )
 
 // ListQuery ユーザー一覧取得のクエリパラメータ
@@ -29,8 +29,8 @@ type GetByUIDQuery struct {
 
 // CreateUserRequest ユーザー作成リクエスト
 type CreateUserRequest struct {
-	Plan           string  `json:"plan,omitempty" validate:"required"`
-	Type           string  `json:"type,omitempty" validate:"required"`
+	Plan           string  `json:"plan,omitempty" validate:"omitempty"`
+	Type           string  `json:"type,omitempty" validate:"omitempty"`
 	UID            string  `json:"uid,omitempty" validate:"required,min=1,max=255"`
 	Name           *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
 	TokenBalance   *int64  `json:"token_balance,omitempty" validate:"omitempty,gte=0"`
@@ -53,14 +53,14 @@ type UpdateUserRequest struct {
 	UID            string  `json:"uid,omitempty" validate:"required,min=1,max=255"`
 	Name           *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
 	TokenBalance   *int64  `json:"token_balance,omitempty" validate:"omitempty,gte=0"`
-	IsPublic       *bool   `json:"is_public,omitempty" validate:"omitempty"`
-	DisplayName    *string `json:"display_name,omitempty" validate:"omitempty,min=1,max=100"`
+	IsPublic       *bool   `json:"isPublic,omitempty" validate:"omitempty"`
+	DisplayName    *string `json:"displayName,omitempty" validate:"omitempty,min=1,max=100"`
 	Bio            *string `json:"bio,omitempty" validate:"omitempty,max=500"`
-	ProfileImage   *string `json:"profile_image,omitempty" validate:"omitempty,url"`
-	BirthDay       *string `json:"birth_day,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	ProfileImage   *string `json:"profileImage,omitempty" validate:"omitempty,url"`
+	BirthDay       *string `json:"birthday,omitempty" validate:"omitempty,datetime=2006-01-02"`
 	Gender         *string `json:"gender,omitempty" validate:"omitempty"`
-	FollowersCount *int    `json:"followers_count,omitempty" validate:"omitempty"`
-	FollowingCount *int    `json:"following_count,omitempty" validate:"omitempty"`
+	FollowersCount *int    `json:"followersCount,omitempty" validate:"omitempty"`
+	FollowingCount *int    `json:"followingCount,omitempty" validate:"omitempty"`
 }
 
 // DeleteUserParam ユーザー削除のパスパラメータ
@@ -74,14 +74,14 @@ func (req *CreateUserRequest) ToUser() *domain.User {
 	// UIDの先頭10文字をNameに設定
 	name := req.UID
 	if len(req.UID) > 10 {
-		req.UID = req.UID[:10]
+		name = req.UID[:10]
 	}
 
 	return &domain.User{
 		UID:            req.UID,
 		Name:           name,
 		Type:           DefaultType,
-		Plan:           DefaultPan,
+		Plan:           DefaultPlan,
 		IsPublic:       nullvalue.ToNullBool(false),
 		DisplayName:    ptr.PtrStringToNullString(req.DisplayName),
 		Bio:            ptr.PtrStringToNullString(req.Bio),

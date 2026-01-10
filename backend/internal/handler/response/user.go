@@ -13,16 +13,17 @@ type UserResponse struct {
 	Name           string  `json:"name"`
 	Type           string  `json:"type"`
 	Plan           string  `json:"plan"`
-	TokenBalance   *int    `json:"token_balance,omitempty"`
-	DisplayName    *string `json:"display_name,omitempty"`
+	TokenBalance   *int    `json:"tokenBalance,omitempty"`
+	DisplayName    *string `json:"displayName,omitempty"`
 	Bio            *string `json:"bio,omitempty"`
-	ProfileImage   *string `json:"profile_image,omitempty"`
-	BirthDay       *string `json:"birth_day,omitempty"`
+	ProfileImage   *string `json:"profileImage,omitempty"`
+	BirthDay       *string `json:"birthDay,omitempty"`
 	Gender         *string `json:"gender,omitempty"`
-	FollowersCount *int    `json:"followers_count,omitempty"`
-	FollowingCount *int    `json:"following_count,omitempty"`
-	CreatedAt      string  `json:"created_at"`
-	UpdatedAt      string  `json:"updated_at"`
+	FollowersCount *int    `json:"followersCount,omitempty"`
+	FollowingCount *int    `json:"followingCount,omitempty"`
+	IsPublic       *bool   `json:"isPublic,omitempty"`
+	CreatedAt      string  `json:"createdAt"`
+	UpdatedAt      string  `json:"updatedAt"`
 }
 
 func ToResponse(user *domain.User) *UserResponse {
@@ -43,6 +44,10 @@ func ToResponse(user *domain.User) *UserResponse {
 		Gender:         ptr.StringToPtr(user.Gender.String),
 		FollowersCount: ptr.Int64ToPtr(user.FollowersCount.Int64),
 		FollowingCount: ptr.Int64ToPtr(user.FollowingCount.Int64),
+	}
+
+	if user.IsPublic.Valid {
+		resp.IsPublic = ptr.BoolToPtr(user.IsPublic.Bool)
 	}
 
 	return resp

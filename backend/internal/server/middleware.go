@@ -95,14 +95,6 @@ func AuthMiddleware() echo.MiddlewareFunc {
 			var err error
 			ctx := c.Request().Context()
 
-			// ローカル環境の場合はテスト用UIDをセットして認証をスキップ
-			env := config.GetCtxEnv(ctx)
-			if env.Env == "local" {
-				ctx = Ctx.SetCtxFromUser(ctx, "local-test-uid")
-				c.SetRequest(c.Request().WithContext(ctx))
-				return next(c)
-			}
-
 			cookie, err := c.Cookie("__session")
 			if err != nil {
 				return errors.MakeAuthorizationError(ctx, "セッションCookieが見つかりません")
