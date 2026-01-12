@@ -170,3 +170,62 @@ func (s *CloudflareR2Storage) Get(ctx context.Context, key string) (string, erro
 	// ファイルの内容を文字列として返す
 	return base64Str, nil
 }
+
+func (s *CloudflareR2Storage) List(ctx context.Context, prefix string) (map[string]string, error) {
+	var (
+		err    error
+		result *s3.ListObjectsV2Output
+	)
+
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.bucketName),
+		Prefix: aws.String(prefix),
+	}
+
+	result, err = s.client.ListObjectsV2(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list objects: %w", err)
+	}
+
+	base64ImagesMap := make(map[string]string)
+	for _, obj := range result.Contents {
+		// 各オブジェクトの内容を取得
+		getInput := &s3.GetObjectInput{
+			Bucket: aws.String(s.bucketName),
+			Key:    obj.Key,
+		}
+
+		getResult, err := s.client.GetObject(ctx, getInput)
+		if err != nil {
+			// 個別のファイル取得でエラーが発生した場合はスキップ
+			continue
+		}
+
+		// ファイルの内容を読み取ってBase64エンコード
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, getResult.Body); err != nil {
+			getResult.Body.Close()
+			continue
+		}
+		getResult.Body.Close()
+
+		// Base64エンコード文字列に変換
+		base64Data := make([]byte, base64.StdEncoding.EncodedLen(buf.Len()))
+		base64.StdEncoding.Encode(base64Data, buf.Bytes())
+		base64Str := string(base64Data)
+
+		// データ部を追加する
+		contentType := aws.ToString(getResult.ContentType)
+		if contentType == "" {
+			// ContentTypeが取得できない場合は、ファイルの内容から判定
+			contentType = image.DetectContentType(buf.Bytes())
+		}
+		base64Str = fmt.Sprintf("data:%s;base64,%s", contentType, base64Str)
+
+		// ファイル名をキーとしてマップに追加
+		fileName := aws.ToString(obj.Key)
+		base64ImagesMap[fileName] = base64Str
+	}
+
+	return base64ImagesMap, nil
+}

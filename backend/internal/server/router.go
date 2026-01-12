@@ -19,4 +19,21 @@ func (s *Server) SetupApplicationRoute() {
 		users.PUT("/:id", s.User.Update)    // ユーザー更新
 		users.DELETE("/:id", s.User.Delete) // ユーザー削除
 	}
+
+	// 画像管理API
+	images := apiRoot.Group("/media", AuthMiddleware())
+	{
+		images.GET("", s.Image.List)           // 画像一覧取得
+		images.POST("", s.Image.Upload)        // 画像アップロード
+		images.GET("/:key", s.Image.GetByKey)  // 画像取得
+		images.DELETE("/:key", s.Image.Delete) // 画像削除
+	}
+
+	// VLog管理API
+	vlogs := apiRoot.Group("/vlogs", AuthMiddleware())
+	{
+		vlogs.GET("", s.VLog.List)          // VLog一覧取得
+		vlogs.GET("/:id", s.VLog.GetByID)   // IDでVLog取得
+		vlogs.DELETE("/:id", s.VLog.Delete) // VLog削除
+	}
 }

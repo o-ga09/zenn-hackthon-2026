@@ -229,9 +229,7 @@ func GetCode(err error) ErrCode {
 	}
 
 	types := failure.CodeOf(err)
-	fmt.Println("😊", types)
 	if code, ok := types.(ErrType); ok {
-		fmt.Println("🎉", code)
 		switch code {
 		case ErrTypeUnAuthorized:
 			return ErrCodeUnAuthorized
