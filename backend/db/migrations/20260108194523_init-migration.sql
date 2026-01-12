@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- vlogsテーブル
 CREATE TABLE IF NOT EXISTS vlogs (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     version INT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     create_user_id VARCHAR(255) NULL COMMENT 'Created by user ID',
     update_user_id VARCHAR(255) NULL COMMENT 'Updated by user ID',
@@ -145,5 +145,22 @@ CREATE TABLE IF NOT EXISTS subtitle_segments (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL,
     INDEX idx_index (`index`),
+    INDEX idx_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- media テーブル
+CREATE TABLE IF NOT EXISTS media (
+    id VARCHAR(255) PRIMARY KEY,
+    version INT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
+    create_user_id VARCHAR(255) NULL COMMENT 'Created by user ID',
+    update_user_id VARCHAR(255) NULL COMMENT 'Updated by user ID',
+    url VARCHAR(512) NOT NULL COMMENT 'Media URL',
+    type VARCHAR(50) NOT NULL COMMENT 'image, video, audio',
+    size BIGINT NOT NULL COMMENT 'File size in bytes',
+    content_type VARCHAR(100) NOT NULL COMMENT 'MIME type',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_type (type),
     INDEX idx_deleted_at (deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
