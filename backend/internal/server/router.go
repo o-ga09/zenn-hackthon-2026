@@ -24,7 +24,7 @@ func (s *Server) SetupApplicationRoute() {
 	images := apiRoot.Group("/media", AuthMiddleware())
 	{
 		images.GET("", s.Image.List)           // 画像一覧取得
-		images.POST("", s.Image.Upload)        // 画像アップロード
+		images.POST("", s.Image.Upload)        // メディアアップロード
 		images.GET("/:key", s.Image.GetByKey)  // 画像取得
 		images.DELETE("/:key", s.Image.Delete) // 画像削除
 	}

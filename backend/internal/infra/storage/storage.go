@@ -114,6 +114,24 @@ func (s *CloudflareR2Storage) Upload(ctx context.Context, key string, base64Data
 	return path, nil
 }
 
+// UploadFile はmultipart/form-dataから受け取ったファイルデータを直接アップロードする
+func (s *CloudflareR2Storage) UploadFile(ctx context.Context, key string, fileData []byte, contentType string) (string, error) {
+	// ファイル名をkeyとして使用（すでにパス込みで渡される）
+	input := &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucketName),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(fileData),
+		ContentType: aws.String(contentType),
+	}
+
+	_, err := s.client.PutObject(ctx, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload file: %w", err)
+	}
+
+	return key, nil
+}
+
 func (s *CloudflareR2Storage) Delete(ctx context.Context, key string) error {
 	var err error
 	input := &s3.DeleteObjectInput{

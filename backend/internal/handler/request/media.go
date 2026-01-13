@@ -1,7 +1,10 @@
 package request
 
-type MediaImageUploadRequest struct {
-	Base64Data string `json:"base64_data" validate:"required"` // Base64エンコードされた画像データ
+import "mime/multipart"
+
+// multipart/form-dataに対応したメディアアップロードリクエスト
+type MediaUploadRequest struct {
+	File *multipart.FileHeader `form:"file" validate:"required"` // アップロードされるファイル
 }
 
 type MediaGetRequest struct {

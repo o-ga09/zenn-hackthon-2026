@@ -19,13 +19,14 @@ const CtxEnvKey Env = "env"
 type Config struct {
 	Env                       string `env:"ENV" envDefault:"dev"`
 	Port                      string `env:"PORT" envDefault:"8080"`
-	Database_url              string `env:"DATABASE_URL" envDefult:""`
-	Sentry_DSN                string `env:"SENTRY_DSN" envDefult:""`
-	ProjectID                 string `env:"PROJECT_ID" envDefult:""`
-	CLOUDFLARE_R2_ACCOUNT_ID  string `env:"CLOUDFLARE_R2_ACCOUNT_ID" envDefult:""`
-	CLOUDFLARE_R2_ACCESSKEY   string `env:"CLOUDFLARE_R2_ACCESSKEY" envDefult:""`
-	CLOUDFLARE_R2_SECRETKEY   string `env:"CLOUDFLARE_R2_SECRETKEY" envDefult:""`
-	CLOUDFLARE_R2_BUCKET_NAME string `env:"CLOUDFLARE_R2_BUCKET_NAME" envDefult:""`
+	Database_url              string `env:"DATABASE_URL" envDefault:""`
+	Sentry_DSN                string `env:"SENTRY_DSN" envDefault:""`
+	ProjectID                 string `env:"PROJECT_ID" envDefault:""`
+	CLOUDFLARE_R2_ACCOUNT_ID  string `env:"CLOUDFLARE_R2_ACCOUNT_ID" envDefault:""`
+	CLOUDFLARE_R2_ACCESSKEY   string `env:"CLOUDFLARE_R2_ACCESSKEY" envDefault:""`
+	CLOUDFLARE_R2_SECRETKEY   string `env:"CLOUDFLARE_R2_SECRETKEY" envDefault:""`
+	CLOUDFLARE_R2_BUCKET_NAME string `env:"CLOUDFLARE_R2_BUCKET_NAME" envDefault:"tavinikkiy-local"`
+	CLOUDFLARE_R2_PUBLIC_URL  string `env:"CLOUDFLARE_R2_PUBLIC_URL" envDefault:"http://localhost:4566"`
 	COOKIE_DOMAIN             string `env:"COOKIE_DOMAIN" envDefault:"localhost"`
 }
 

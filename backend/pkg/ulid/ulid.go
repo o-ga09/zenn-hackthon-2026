@@ -45,6 +45,12 @@ func GenerateULID() (string, error) {
 	return ulidValue.String(), nil
 }
 
+// New は新しいULIDを生成する（GenerateULIDのエイリアス）
+func New() string {
+	id, _ := GenerateULID()
+	return id
+}
+
 func (u *ULIDValue) Equals(target *ULIDValue) bool {
 	return u.Value == target.Value
 }

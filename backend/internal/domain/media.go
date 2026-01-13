@@ -19,6 +19,7 @@ type IMediaRepository interface {
 
 type IImageStorage interface {
 	Upload(ctx context.Context, key string, base64Data string) (string, error)
+	UploadFile(ctx context.Context, key string, file []byte, contentType string) (string, error) // ファイルアップロード用
 	Delete(ctx context.Context, key string) error
 	Get(ctx context.Context, key string) (string, error)
 	List(ctx context.Context, prefix string) (map[string]string, error)

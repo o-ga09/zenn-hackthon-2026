@@ -1,16 +1,20 @@
 package handler
 
 import (
-	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/request"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/response"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
 
 type IImageServer interface {
@@ -46,6 +50,8 @@ func (s *ImageServer) List(c echo.Context) error {
 		return err
 	}
 
+	env := config.GetCtxEnv(ctx)
+
 	mediaResponses := make([]*response.MediaListItem, 0, len(medias))
 	for _, media := range medias {
 		mediaResponses = append(mediaResponses, &response.MediaListItem{
@@ -53,7 +59,7 @@ func (s *ImageServer) List(c echo.Context) error {
 			Type:        media.Type,
 			ContentType: media.ContentType,
 			Size:        media.Size,
-			URL:         media.URL,
+			URL:         fmt.Sprintf("%s/%s/%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL),
 			ImageData:   base64Images[media.URL],
 			CreatedAt:   media.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
@@ -65,60 +71,83 @@ func (s *ImageServer) List(c echo.Context) error {
 	})
 }
 
+// multipart/form-dataでメディアアップロード(画像・動画対応)
 func (s *ImageServer) Upload(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req request.MediaImageUploadRequest
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-	if err := c.Validate(&req); err != nil {
-		return err
-	}
-
-	user := context.GetCtxFromUser(ctx)
-	key, err := s.storage.Upload(ctx, fmt.Sprintf("media/%s/", user), req.Base64Data)
-	if err != nil {
-		return err
-	}
-
-	// base64DataからContentTypeやSizeを取得する
-	// base64データをデコードしてバイナリデータを取得
-	decodedData, err := base64.StdEncoding.DecodeString(req.Base64Data)
+	// TODO: リクエスト構造体にバインドできるようにする
+	// multipart/form-dataからファイルを取得
+	file, err := c.FormFile("file")
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
-	// ファイルサイズを取得
-	fileSize := int64(len(decodedData))
+	// ファイルオープン
+	src, err := file.Open()
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	defer src.Close()
+
+	// ファイルデータを読み取り
+	fileData, err := io.ReadAll(src)
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
 	// MIMEタイプを検出
-	contentType := http.DetectContentType(decodedData)
+	contentType := http.DetectContentType(fileData)
+
+	// ファイル拡張子からもMIMEタイプを推定(動画の場合は必要)
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	switch ext {
+	case ".mp4":
+		contentType = "video/mp4"
+	case ".mov":
+		contentType = "video/quicktime"
+	case ".avi":
+		contentType = "video/x-msvideo"
+	case ".webm":
+		contentType = "video/webm"
+	case ".mkv":
+		contentType = "video/x-matroska"
+	}
 
 	// ファイル形式を判定
 	var fileType string
-	switch contentType {
-	case "image/jpeg":
-		fileType = "jpeg"
-	case "image/png":
-		fileType = "png"
-	case "image/gif":
-		fileType = "gif"
-	case "image/webp":
-		fileType = "webp"
+	switch {
+	case strings.HasPrefix(contentType, "image/"):
+		fileType = "image"
+	case strings.HasPrefix(contentType, "video/"):
+		fileType = "video"
 	default:
-		fileType = "unknown"
+		return errors.Wrap(ctx, fmt.Errorf("対応していないファイル形式: %s", contentType))
 	}
 
+	// ユーザーIDとファイルIDを取得
+	userID := context.GetCtxFromUser(ctx)
+	fileID := ulid.New()
+
+	// ストレージキーを生成
+	storageKey := fmt.Sprintf("media/%s/%s%s", userID, fileID, ext)
+
+	// ストレージにアップロード
+	storageURL, err := s.storage.UploadFile(ctx, storageKey, fileData, contentType)
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// データベースにメタデータを保存
 	model := &domain.Media{
 		Type:        fileType,
 		ContentType: contentType,
-		Size:        fileSize,
-		URL:         key,
+		Size:        file.Size,
+		URL:         storageURL,
 	}
 	if err := s.imageRepo.Save(ctx, model); err != nil {
-		return err
+		return errors.Wrap(ctx, err)
 	}
 
+	// レスポンスを返す
 	return c.JSON(http.StatusOK, response.MediaImageUploadResponse{
 		ID:  model.ID,
 		URL: model.URL,
