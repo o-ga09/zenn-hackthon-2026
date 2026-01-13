@@ -47,14 +47,34 @@ export interface TravelsResponse {
   next_page_token?: string
 }
 
-// 画像管理関連の型定義
+// メディアアップロード関連の型定義（画像・動画統合）
+export interface MediaUploadRequest {
+  file: File // アップロードするファイル（画像または動画）
+}
+
+export interface MediaUploadResponse {
+  file_id: string // アップロードされたメディアのファイルID
+  url: string // メディアの取得URL
+}
+
+// 画像管理関連の型定義（後方互換性のため保持）
 export interface MediaImageUploadRequest {
-  base64_data: string // Base64エンコードされた画像データ
+  file: File // 画像ファイル
 }
 
 export interface MediaImageUploadResponse {
   file_id: string // アップロードされた画像のファイルID
   url: string // 画像の取得URL
+}
+
+// 動画管理関連の型定義（後方互換性のため保持）
+export interface MediaVideoUploadRequest {
+  file: File // 動画ファイル
+}
+
+export interface MediaVideoUploadResponse {
+  file_id: string // アップロードされた動画のファイルID
+  url: string // 動画の取得URL
 }
 
 export interface MediaGetRequest {

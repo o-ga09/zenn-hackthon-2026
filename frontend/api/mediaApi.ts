@@ -1,20 +1,47 @@
 import apiClient from './client'
 import {
+  MediaUploadRequest,
+  MediaUploadResponse,
   MediaImageUploadRequest,
   MediaImageUploadResponse,
+  MediaVideoUploadRequest,
+  MediaVideoUploadResponse,
   MediaGetResponse,
   MediaListResponse,
 } from './types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 /**
- * 画像をアップロードするAPI関数
+ * メディア（画像・動画）をアップロードするAPI関数（統合版）
+ */
+export const uploadMedia = async (request: MediaUploadRequest): Promise<MediaUploadResponse> => {
+  const formData = new FormData()
+  formData.append('file', request.file)
+
+  const response = await apiClient.post('/media', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return response.data
+}
+
+/**
+ * 画像をアップロードするAPI関数（後方互換性のため保持）
  */
 export const uploadMediaImage = async (
   request: MediaImageUploadRequest
 ): Promise<MediaImageUploadResponse> => {
-  const response = await apiClient.post('/media', request)
-  return response.data
+  return uploadMedia(request)
+}
+
+/**
+ * 動画をアップロードするAPI関数（後方互換性のため保持）
+ */
+export const uploadMediaVideo = async (
+  request: MediaVideoUploadRequest
+): Promise<MediaVideoUploadResponse> => {
+  return uploadMedia(request)
 }
 
 /**
@@ -47,27 +74,41 @@ export const MEDIA_QUERY_KEYS = {
 } as const
 
 /**
- * 画像アップロードのフック
+ * メディア（画像・動画）アップロードのフック（統合版）
  */
-export const useUploadMediaImage = () => {
+export const useUploadMedia = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (request: MediaImageUploadRequest) => uploadMediaImage(request),
+    mutationFn: (request: MediaUploadRequest) => uploadMedia(request),
     onSuccess: data => {
       // アップロード成功時にキャッシュを無効化して最新データを取得
       queryClient.invalidateQueries({ queryKey: MEDIA_QUERY_KEYS.images() })
 
-      // アップロードした画像を個別にキャッシュ
+      // アップロードしたメディアを個別にキャッシュ
       queryClient.setQueryData(MEDIA_QUERY_KEYS.image(data.file_id), {
         file_id: data.file_id,
         url: data.url,
       })
     },
     onError: error => {
-      console.error('画像アップロードエラー:', error)
+      console.error('メディアアップロードエラー:', error)
     },
   })
+}
+
+/**
+ * 画像アップロードのフック（後方互換性のため保持）
+ */
+export const useUploadMediaImage = () => {
+  return useUploadMedia()
+}
+
+/**
+ * 動画アップロードのフック（後方互換性のため保持）
+ */
+export const useUploadMediaVideo = () => {
+  return useUploadMedia()
 }
 
 /**

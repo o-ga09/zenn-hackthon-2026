@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Play, Calendar, Download, Share2, Video, Image, Upload, X, Loader2 } from 'lucide-react'
 import React, { useState } from 'react'
-import { useUploadMediaImage, useGetMediaList, MEDIA_QUERY_KEYS } from '@/api/mediaApi'
+import { useUploadMedia, useGetMediaList, MEDIA_QUERY_KEYS } from '@/api/mediaApi'
 import { useGetVlogs } from '@/api/vlogAPi'
 import { toast } from 'sonner'
 
@@ -23,7 +23,7 @@ export default function RecentVideo() {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: boolean }>({})
 
-  const uploadMutation = useUploadMediaImage()
+  const uploadMutation = useUploadMedia()
   const { data: mediaListData, isLoading: isMediaLoading } = useGetMediaList()
   const { data: vlogsData, isLoading: isVlogsLoading } = useGetVlogs()
 
@@ -33,31 +33,18 @@ export default function RecentVideo() {
     .slice(0, 3)
     .map(media => ({
       id: media.id,
-      title: `画像_${media.id.slice(-6)}`, // ファイル名の代わりに簡易タイトル
+      title: `${media.type === 'video' ? '動画' : '画像'}_${media.id.slice(-6)}`, // タイプに応じたタイトル
       date: new Date(media.created_at).toLocaleDateString('ja-JP'),
       thumbnail: media.url,
       image_data: media.image_data,
-      duration: '0:30', // 画像なので固定値
+      video_url: media.type === 'video' ? media.url : undefined, // 動画の場合はvideo_urlを設定
+      duration: media.type === 'video' ? '不明' : '', // 動画の場合は不明、画像の場合は固定値
       type: 'original',
+      media_type: media.type, // メディアタイプを保持
     }))
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files)
-  }
-
-  // ファイルをBase64に変換する関数
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        // "data:image/jpeg;base64," のようなプリフィックスを取り除く
-        const base64Data = result.split(',')[1]
-        resolve(base64Data)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
   }
 
   const handleUpload = async () => {
@@ -76,12 +63,9 @@ export default function RecentVideo() {
       // すべてのファイルを並列でアップロード
       const uploadPromises = files.map(async file => {
         try {
-          // 画像ファイルのみ処理（動画はAPIが実装されたら対応）
-          if (!file.type.startsWith('image/')) return null
-
-          const base64Data = await convertFileToBase64(file)
+          // 統一されたアップロード関数を使用（画像・動画自動判別）
           const result = await uploadMutation.mutateAsync({
-            base64_data: base64Data,
+            file: file,
           })
 
           return result
@@ -103,7 +87,7 @@ export default function RecentVideo() {
       const failedCount = files.length - successCount
 
       if (successCount > 0) {
-        toast.success(`${successCount}個のファイルがアップロードされました。`)
+        toast.success(`${successCount}個のメディアファイルがアップロードされました。`)
       }
       if (failedCount > 0) {
         toast.error(`${failedCount}個のファイルのアップロードに失敗しました。`)
@@ -199,8 +183,8 @@ export default function RecentVideo() {
                 <div className="bg-muted/50 rounded-lg p-4 text-sm">
                   <div className="font-medium mb-2">対応ファイル形式:</div>
                   <div className="text-muted-foreground">
-                    • 画像: JPG, PNG, WEBP (現在対応中)
-                    <br />• 動画: MP4, MOV, AVI (今後対応予定)
+                    • 画像: JPG, PNG, WEBP, GIF
+                    <br />• 動画: MP4, MOV, AVI, WebM
                   </div>
                 </div>
               </div>
@@ -248,7 +232,7 @@ export default function RecentVideo() {
             className="flex items-center gap-2 text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium transition-all"
           >
             <Image className="w-3 h-3 md:w-4 md:h-4" />
-            素材動画
+            素材メディア
           </TabsTrigger>
         </TabsList>
 
@@ -278,16 +262,12 @@ interface VideoGridProps {
     video_url?: string
     duration: string
     type: string
+    media_type?: string // メディアタイプ (image or video)
   }>
   isLoading?: boolean
 }
 
 function VideoGrid({ videos, isLoading = false }: VideoGridProps) {
-  const handleVideoClick = (video: any) => {
-    console.log('Video clicked:', video)
-    // 実際のAPIが実装されたら、ここで動画再生処理を行う
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -307,17 +287,16 @@ function VideoGrid({ videos, isLoading = false }: VideoGridProps) {
           {videos.map(video => (
             <div
               key={video.id}
-              className="relative aspect-[4/3] bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden cursor-pointer group rounded-lg"
-              onClick={() => handleVideoClick(video)}
+              className="relative aspect-[4/3] bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden rounded-lg"
             >
-              {video.video_url ? (
+              {video.video_url || video.media_type === 'video' ? (
                 <video
-                  src={video.video_url}
+                  src={video.video_url || video.image_data}
                   poster={video.image_data}
                   className="w-full h-full object-cover"
-                  preload="metadata"
                   controls
                   playsInline
+                  preload="metadata"
                 />
               ) : (
                 <img
@@ -327,57 +306,14 @@ function VideoGrid({ videos, isLoading = false }: VideoGridProps) {
                   loading="lazy"
                 />
               )}
-              {/* Gradient overlay for better text visibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70"></div>
 
-              {/* Content overlay (positioned at the bottom only) */}
-              <div className="absolute bottom-0 left-0 right-0 p-2">
-                {/* Duration badge */}
-                <Badge className="absolute top-2 right-2 text-2xs md:text-xs bg-black/60 text-white">
-                  {video.duration}
-                </Badge>
-
-                {/* Bottom content */}
-                <div className="text-white">
-                  <h3 className="font-medium text-sm md:text-base line-clamp-1 mb-0.5">
-                    {video.title}
-                  </h3>
-                  <div className="flex items-center text-2xs md:text-xs text-white/80">
-                    <div className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {video.date}
-                    </div>
-                  </div>
+              {/* タイトルオーバーレイ */}
+              <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-2 pointer-events-none">
+                <h3 className="text-white font-medium text-sm line-clamp-1">{video.title}</h3>
+                <div className="flex items-center text-xs text-white/80">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  {video.date}
                 </div>
-              </div>
-
-              {/* Play button overlay */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="bg-white/90 text-black hover:bg-white rounded-full w-9 h-9 md:w-10 md:h-10 p-0"
-                >
-                  <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
-                </Button>
-              </div>
-
-              {/* Action buttons (visible on hover) - positioned at the top right */}
-              <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="p-1 h-7 w-7 md:h-8 md:w-8 bg-black/40 hover:bg-black/60 text-white border-white/20 rounded-full"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="p-1 h-7 w-7 md:h-8 md:w-8 bg-black/40 hover:bg-black/60 text-white border-white/20 rounded-full"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                </Button>
               </div>
             </div>
           ))}
