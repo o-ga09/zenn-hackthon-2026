@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -165,6 +166,8 @@ func (s *AuthServer) GetUser(c echo.Context) error {
 		}
 		return errors.Wrap(ctx, err)
 	}
+
+	fmt.Println("✅", user.ProfileImage)
 
 	if user.ProfileImage.Valid {
 		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)

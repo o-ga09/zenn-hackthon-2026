@@ -33,15 +33,15 @@ type CreateUserRequest struct {
 	Type           string  `json:"type,omitempty" validate:"omitempty"`
 	UID            string  `json:"uid,omitempty" validate:"required,min=1,max=255"`
 	Name           *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
-	TokenBalance   *int64  `json:"token_balance,omitempty" validate:"omitempty,gte=0"`
-	IsPublic       *bool   `json:"is_public,omitempty" validate:"omitempty"`
-	DisplayName    *string `json:"display_name,omitempty" validate:"omitempty,min=1,max=100"`
+	TokenBalance   *int64  `json:"tokenBalance,omitempty" validate:"omitempty,gte=0"`
+	IsPublic       *bool   `json:"isPublic,omitempty" validate:"omitempty"`
+	DisplayName    *string `json:"displayName,omitempty" validate:"omitempty,min=1,max=100"`
 	Bio            *string `json:"bio,omitempty" validate:"omitempty,max=500"`
-	ProfileImage   *string `json:"profile_image,omitempty" validate:"omitempty,url"`
-	BirthDay       *string `json:"birth_day,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	ProfileImage   *string `json:"profileImage,omitempty" validate:"omitempty,url"`
+	BirthDay       *string `json:"birthday,omitempty" validate:"omitempty,datetime=2006-01-02"`
 	Gender         *string `json:"gender,omitempty" validate:"omitempty"`
-	FollowersCount *int    `json:"followers_count,omitempty" validate:"omitempty"`
-	FollowingCount *int    `json:"following_count,omitempty" validate:"omitempty"`
+	FollowersCount *int    `json:"followersCount,omitempty" validate:"omitempty"`
+	FollowingCount *int    `json:"followingCount,omitempty" validate:"omitempty"`
 }
 
 // UpdateUserRequest ユーザー更新リクエスト
