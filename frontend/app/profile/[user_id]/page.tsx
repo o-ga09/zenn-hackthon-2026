@@ -10,25 +10,10 @@ import { useAuth } from '@/context/authContext'
 
 export default function UserProfilePage() {
   const { user } = useAuth()
-  // ユーザー情報の取得
-  const { data: userData, isLoading: isLoadingUser } = useGetUserById(user?.id || '')
   // アップロード数の取得
   const { data: photoCount } = useGetUserPhotoCount(user?.id || '')
   // メモリーの取得
   const { data: memories, isLoading: isLoadingMemories } = useGetUserMemories(user?.id || '')
-  if (isLoadingUser) {
-    return (
-      <MainLayout>
-        <div className="max-w-screen-lg mx-auto p-4">
-          <div className="space-y-4">
-            <Skeleton className="h-24 w-24 rounded-full" />
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-full max-w-md" />
-          </div>
-        </div>
-      </MainLayout>
-    )
-  }
 
   if (!user) {
     return (
@@ -45,14 +30,14 @@ export default function UserProfilePage() {
       {/* プロフィールセクション */}
       <div className="border-b">
         <UserProfile
-          userId={userData?.id || ''}
-          name={userData?.displayName ?? ''}
-          occupation={userData?.name || 'ユーザー'}
-          avatarUrl={userData?.profileImage || '/placeholder.webp'}
-          bio={userData?.bio || ''}
+          userId={user?.id || ''}
+          name={user?.displayName ?? ''}
+          occupation={user?.name || 'ユーザー'}
+          avatarUrl={user?.profileImage || '/placeholder.webp'}
+          bio={user?.bio || ''}
           totalMemories={photoCount?.videoCount || 0}
-          followers={userData?.followersCount || 0}
-          following={userData?.followingCount || 0}
+          followers={user?.followersCount || 0}
+          following={user?.followingCount || 0}
         />
       </div>
 
