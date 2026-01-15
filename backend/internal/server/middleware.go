@@ -37,7 +37,7 @@ func AddID(ctx context.Context) echo.MiddlewareFunc {
 func WithTimeout() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(c.Request().Context(), 60*time.Second)
 			defer cancel()
 			c.SetRequest(c.Request().WithContext(ctx))
 			return next(c)

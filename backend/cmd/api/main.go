@@ -17,6 +17,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ctx = config.InitGenAI(ctx)
+
 	logger.Logger(ctx)
 
 	srv := server.New(ctx)

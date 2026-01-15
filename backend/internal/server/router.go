@@ -36,4 +36,10 @@ func (s *Server) SetupApplicationRoute() {
 		vlogs.GET("/:id", s.VLog.GetByID)   // IDでVLog取得
 		vlogs.DELETE("/:id", s.VLog.Delete) // VLog削除
 	}
+
+	// AIエージェントAPI
+	agentGroup := apiRoot.Group("/agent", AuthMiddleware())
+	{
+		agentGroup.POST("/create-vlog", s.Agent.CreateVLog) // VLog作成
+	}
 }

@@ -9,12 +9,16 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/caarlos0/env/v6"
+	"github.com/firebase/genkit/go/genkit"
+	"github.com/firebase/genkit/go/plugins/googlegenai"
 	"google.golang.org/api/option"
 )
 
 type Env string
+type GenAIConfig string
 
 const CtxEnvKey Env = "env"
+const CtxGenAIKey GenAIConfig = "genai_config"
 
 type Config struct {
 	Env                       string `env:"ENV" envDefault:"dev"`
@@ -28,6 +32,7 @@ type Config struct {
 	CLOUDFLARE_R2_BUCKET_NAME string `env:"CLOUDFLARE_R2_BUCKET_NAME" envDefault:"tavinikkiy-local"`
 	CLOUDFLARE_R2_PUBLIC_URL  string `env:"CLOUDFLARE_R2_PUBLIC_URL" envDefault:"http://localhost:4566"`
 	COOKIE_DOMAIN             string `env:"COOKIE_DOMAIN" envDefault:"localhost"`
+	GOOGLE_API_KEY            string `env:"GOOGLE_API_KEY" envDefault:""`
 }
 
 func New(ctx context.Context) (context.Context, error) {
@@ -76,4 +81,22 @@ func GetCtxEnv(ctx context.Context) *Config {
 		log.Fatal("config not found")
 	}
 	return cfg
+}
+
+func InitGenAI(ctx context.Context) context.Context {
+	// Initialize Genkit with the Google AI plugin
+	g := genkit.Init(ctx,
+		genkit.WithPlugins(&googlegenai.GoogleAI{}),
+		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
+	)
+	return context.WithValue(ctx, CtxGenAIKey, g)
+}
+
+func GetGenkitCtx(ctx context.Context) *genkit.Genkit {
+	var g *genkit.Genkit
+	var ok bool
+	if g, ok = ctx.Value(CtxGenAIKey).(*genkit.Genkit); !ok {
+		log.Fatal("genkit not found")
+	}
+	return g
 }

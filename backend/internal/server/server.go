@@ -26,6 +26,7 @@ type Server struct {
 	Auth   handler.IAuthServer
 	Image  handler.IImageServer
 	VLog   handler.IVLogServer
+	Agent  handler.IAgentServer
 }
 
 func New(ctx context.Context) *Server {
@@ -39,6 +40,7 @@ func New(ctx context.Context) *Server {
 	authHandler := handler.NewAuthServer(&mysql.UserRepository{}, r2Storage)
 	imageHandler := handler.NewImageServer(&mysql.MediaRepository{}, r2Storage)
 	vlogHandler := handler.NewVLogServer(&mysql.VLogRepository{})
+	agentHandler := handler.NewAgentServer(ctx, r2Storage)
 
 	// Echoインスタンス作成
 	e := echo.New()
@@ -52,6 +54,7 @@ func New(ctx context.Context) *Server {
 		Auth:   authHandler,
 		Image:  imageHandler,
 		VLog:   vlogHandler,
+		Agent:  agentHandler,
 	}
 }
 
