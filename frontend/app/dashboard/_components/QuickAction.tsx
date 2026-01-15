@@ -1,11 +1,18 @@
+'use client'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Plus, Upload } from 'lucide-react'
-import Link from 'next/link'
 import React from 'react'
 import Statistics from './Statistics'
+import { useCreateVlog } from '@/api/createVlog'
 
 export default function QuickAction() {
+  const { mutateAsync: createVlog, isPending } = useCreateVlog()
+
+  const handleCreateVlog = async () => {
+    const result = await createVlog()
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-12">
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm hover:shadow-xl transition-shadow">
@@ -23,12 +30,14 @@ export default function QuickAction() {
           </div>
         </CardHeader>
         <CardContent className="px-4 md:px-6 py-3 md:py-4">
-          <Link href="/upload">
-            <Button className="w-full bg-primary hover:bg-primary/90 text-sm md:text-base py-1.5 md:py-2 h-auto">
-              <Upload className="w-4 h-4 mr-2" />
-              写真をアップロード
-            </Button>
-          </Link>
+          <Button
+            onClick={handleCreateVlog}
+            disabled={isPending}
+            className="w-full bg-primary hover:bg-primary/90 text-sm md:text-base py-1.5 md:py-2 h-auto disabled:opacity-50"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {isPending ? '生成中...' : '思い出動画を生成してみる'}
+          </Button>
         </CardContent>
       </Card>
       <Statistics />
