@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo"
@@ -167,9 +167,7 @@ func (s *AuthServer) GetUser(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	fmt.Println("✅", user.ProfileImage)
-
-	if user.ProfileImage.Valid {
+	if user.ProfileImage.Valid && !strings.HasPrefix(user.ProfileImage.String, "https://") {
 		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
 		if err != nil {
 			return errors.Wrap(ctx, err)

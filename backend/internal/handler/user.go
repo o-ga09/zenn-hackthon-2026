@@ -88,7 +88,7 @@ func (s *UserServer) GetByID(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	if user.ProfileImage.Valid {
+	if user.ProfileImage.Valid && !strings.HasPrefix(user.ProfileImage.String, "https://") {
 		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
 		if err != nil {
 			return errors.Wrap(ctx, err)
@@ -117,7 +117,7 @@ func (s *UserServer) GetByUID(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	if user.ProfileImage.Valid {
+	if user.ProfileImage.Valid && !strings.HasPrefix(user.ProfileImage.String, "https://") {
 		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
 		if err != nil {
 			return errors.Wrap(ctx, err)
