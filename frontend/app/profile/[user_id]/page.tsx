@@ -1,19 +1,15 @@
 'use client'
-import React, { use } from 'react'
+import React from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import UserProfile from './_components/UserProfile'
 import TravelMemoryCard from './_components/TravelMemoryCard'
-import { useGetUserById, useGetUserPhotoCount } from '@/api/user'
-import { useGetUserMemories } from '@/hooks/useUserData'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useGetUserPhotoCount } from '@/api/user'
 import { useAuth } from '@/context/authContext'
 
 export default function UserProfilePage() {
   const { user } = useAuth()
   // アップロード数の取得
   const { data: photoCount } = useGetUserPhotoCount(user?.id || '')
-  // メモリーの取得
-  const { data: memories, isLoading: isLoadingMemories } = useGetUserMemories(user?.id || '')
 
   if (!user) {
     return (
