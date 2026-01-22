@@ -8,6 +8,8 @@
 ├── docs/             # プロジェクトドキュメント
 │   ├── design/       # システム設計ドキュメント
 │   └── requirements/ # 要件・仕様書
+├── .github/          # GitHub設定・テンプレート
+│   └── pull_request_template.md  # PRテンプレート
 └── .kiro/            # Kiro AI アシスタント設定
     ├── hooks/        # 自動化フック設定
     └── steering/     # 開発ガイドライン・ルール
@@ -153,6 +155,7 @@ frontend/
 - **API仕様**: `api-spec.md` または OpenAPI形式 `openapi.yaml`
 - **変更履歴**: `CHANGELOG.md`
 - **貢献ガイド**: `CONTRIBUTING.md`
+- **PRテンプレート**: `.github/pull_request_template.md` (GitHub標準)
 
 ## インポート規約
 
