@@ -4,7 +4,7 @@
 
 ユーザーがアップロードした旅行の写真・動画から、AIが自動的に魅力的な旅行Vlogを生成するWebアプリケーション。
 
-[公式ページ](https://zenn.dev/hackathons/google-cloud-japan-ai-hackthon-vol4)
+[公式ページ]([https://zenn.dev/hackathons/google-cloud-japan-ai-hackthon-vol4](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol4))
 
 ## コンセプト
 
