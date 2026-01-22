@@ -4,49 +4,83 @@
 
 ### 6.1 エンドポイント
 
-#### POST /api/create-vlog
-**説明:** 旅行Vlogを自動生成（要認証・トークン消費）
+#### POST /api/agent/create-vlog
 
-**認証:** Firebase ID Token
+**説明:** AI旅行Vlog自動生成（Firebase Genkit for Go + Vertex AI + Veo3）
+
+**認証:** Firebase ID Token または 未認証ユーザー初回利用（セッションベース）
 
 **リクエスト:**
+
 ```
 Content-Type: multipart/form-data
-Authorization: Bearer <firebase_id_token>
+Authorization: Bearer <firebase_id_token> (認証ユーザーの場合)
+X-Session-Token: <anonymous_session_token> (未認証ユーザーの場合)
 
 files: File[] (画像・動画ファイル)
+title: string (オプション)
+description: string (オプション)
+style: string (cinematic|casual|documentary)
+duration: number (5-60秒)
 ```
 
-**レスポンス (Server-Sent Events):**
-```
-Content-Type: text/event-stream
+**レスポンス (非同期 + SSE):**
 
-data: {"type": "token_check", "required": 150, "available": 200}
-data: {"type": "status", "message": "画像をアップロード中..."}
-data: {"type": "tool_call", "tool": "upload_media", "status": "running"}
-data: {"type": "tool_call", "tool": "upload_media", "status": "completed", "result": {...}}
-data: {"type": "status", "message": "画像を分析中..."}
-...
-data: {"type": "token_consumed", "amount": 150, "remaining": 50}
-data: {"type": "completed", "video_url": "https://...", "share_url": "https://..."}
-```
-
-**エラーレスポンス:**
 ```json
 {
-  "error": "insufficient_tokens",
-  "message": "トークンが不足しています",
-  "required": 150,
-  "available": 30
+  "job_id": "job_abc123",
+  "vlog_id": "vlog_xyz789",
+  "status": "queued",
+  "sse_endpoint": "/api/sse/connect/job_abc123"
 }
 ```
 
+**SSE進行状況イベント:**
+
+```
+Content-Type: text/event-stream
+
+data: {"type": "status", "message": "画像をアップロード中...", "progress": 10}
+data: {"type": "step", "current_step": "image_analysis", "estimated_time": "2分"}
+data: {"type": "ai_analysis", "tool": "gemini3_analyze", "status": "running"}
+data: {"type": "ai_analysis", "tool": "gemini3_analyze", "status": "completed", "result": {...}}
+data: {"type": "video_generation", "tool": "veo3_generate", "status": "running"}
+data: {"type": "completed", "video_url": "https://...", "thumbnail_url": "https://..."}
+```
+
+#### GET /api/agent/vlog/{id}/status
+
+**説明:** Vlog生成ジョブのステータス確認
+
+**レスポンス:**
+
+```json
+{
+  "job_id": "job_abc123",
+  "vlog_id": "vlog_xyz789",
+  "status": "processing|completed|failed",
+  "progress_percentage": 75,
+  "current_step": "video_generation",
+  "estimated_completion_time": "2026-01-22T15:30:00Z",
+  "video_url": "https://...",
+  "error_message": null
+}
+```
+
+#### GET /api/sse/connect/{jobId}
+
+**説明:** SSE接続エンドポイント（リアルタイム進行状況）
+
+**認証:** Firebase ID Token または セッショントークン
+
 #### GET /api/user/tokens
+
 **説明:** ユーザーのトークン残高を取得
 
 **認証:** Firebase ID Token
 
 **レスポンス:**
+
 ```json
 {
   "balance": 230,
@@ -56,15 +90,18 @@ data: {"type": "completed", "video_url": "https://...", "share_url": "https://..
 ```
 
 #### GET /api/user/transactions
+
 **説明:** トークン利用履歴を取得
 
 **認証:** Firebase ID Token
 
 **クエリパラメータ:**
+
 - `limit`: 取得件数（デフォルト: 20）
 - `offset`: オフセット
 
 **レスポンス:**
+
 ```json
 {
   "transactions": [
@@ -90,21 +127,24 @@ data: {"type": "completed", "video_url": "https://...", "share_url": "https://..
 ```
 
 #### POST /api/billing/create-checkout
+
 **説明:** Stripe Checkout Sessionを作成
 
 **認証:** Firebase ID Token
 
 **リクエスト:**
+
 ```json
 {
-  "type": "token_purchase",  // or "subscription"
-  "plan": "500_tokens",       // or "monthly", "yearly"
+  "type": "token_purchase", // or "subscription"
+  "plan": "500_tokens", // or "monthly", "yearly"
   "success_url": "https://app.example.com/success",
   "cancel_url": "https://app.example.com/cancel"
 }
 ```
 
 **レスポンス:**
+
 ```json
 {
   "checkout_url": "https://checkout.stripe.com/...",
@@ -113,11 +153,13 @@ data: {"type": "completed", "video_url": "https://...", "share_url": "https://..
 ```
 
 #### POST /api/billing/create-portal
+
 **説明:** Stripeカスタマーポータルセッションを作成
 
 **認証:** Firebase ID Token
 
 **レスポンス:**
+
 ```json
 {
   "portal_url": "https://billing.stripe.com/..."
@@ -125,11 +167,13 @@ data: {"type": "completed", "video_url": "https://...", "share_url": "https://..
 ```
 
 #### POST /api/webhook/stripe
+
 **説明:** Stripe Webhookエンドポイント
 
 **認証:** Stripe Signature
 
 **処理するイベント:**
+
 - `checkout.session.completed`: 決済完了時
 - `customer.subscription.created`: サブスク作成時
 - `customer.subscription.updated`: サブスク更新時
@@ -142,6 +186,7 @@ data: {"type": "completed", "video_url": "https://...", "share_url": "https://..
 #### 6.2.1 createVlog Flow
 
 **入力スキーマ:**
+
 ```json
 {
   "uid": "user123",
@@ -150,6 +195,7 @@ data: {"type": "completed", "video_url": "https://...", "share_url": "https://..
 ```
 
 **出力スキーマ:**
+
 ```json
 {
   "video_id": "abc123",

@@ -4,7 +4,7 @@
 
 - **フロントエンド**: Next.js 15 + React 19
 - **バックエンド**: Go + Echoフレームワーク
-- **AIエージェント**: Firebase Genkit for Go + Vertex AI (Gemini 2.5 Flash)
+- **AIエージェント**: Firebase Genkit for Go + Vertex AI (Gemini 3 + Veo3)
 - **データベース**: TiDB (MySQL互換)
 - **認証**: Firebase Auth
 - **ストレージ**: Cloudflare R2 (S3互換)
@@ -28,6 +28,9 @@
 - **ORM**: GORM + MySQLドライバー
 - **DBマイグレーション**: sql-migrate
 - **AIフレームワーク**: Firebase Genkit for Go
+- **AI統合**: Vertex AI (Gemini 3画像分析 + Veo3動画生成)
+- **リアルタイム通信**: SSE (Server-Sent Events)
+- **非同期処理**: Goroutine + チャンネルベースジョブキュー
 - **クラウドサービス**: Google Cloud APIs, Vertex AI
 - **ストレージ**: AWS SDK v2 (S3互換ストレージ用)
 - **認証**: Firebase Admin SDK

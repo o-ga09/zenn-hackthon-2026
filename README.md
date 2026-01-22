@@ -12,7 +12,10 @@
 
 ## 主要機能
 
-- **自動Vlog生成**: AIエージェントがアップロードされたメディアから自律的にショート動画を生成
+- **自動Vlog生成**: Firebase Genkit for GoベースのAIエージェントが画像分析から動画生成まで自律実行
+- **AI統合**: Vertex AI (Gemini 3 + Veo3) による高品質な画像分析と動画生成
+- **リアルタイム進行状況**: SSE (Server-Sent Events) による非同期処理の進行状況表示
+- **未認証ユーザー対応**: 初回利用時の認証不要でお試し利用可能
 - **音声合成**: ずんだもんの声でナレーション
 - **ユーザー認証**: Firebase Authによる安全なユーザー管理
 - **メディア管理**: 旅行写真・動画のアップロード、整理、管理
@@ -20,15 +23,15 @@
 
 ## アーキテクチャ
 
-| 構成要素        | 技術スタック                       |
-| --------------- | ---------------------------------- |
-| フロントエンド  | Next.js 15 + React 19              |
-| バックエンド    | Go + Echo                          |
-| AI エージェント | Firebase Genkit for Go + Vertex AI |
-| データベース    | TiDB (MySQL互換)                   |
-| ユーザー認証    | Firebase Auth                      |
-| ストレージ      | Cloudflare R2 (S3互換)             |
-| ホスティング    | Google Cloud Run                   |
+| 構成要素        | 技術スタック                                         |
+| --------------- | ---------------------------------------------------- |
+| フロントエンド  | Next.js 15 + React 19                                |
+| バックエンド    | Go + Echo                                            |
+| AI エージェント | Firebase Genkit for Go + Vertex AI (Gemini 3 + Veo3) |
+| データベース    | TiDB (MySQL互換)                                     |
+| ユーザー認証    | Firebase Auth                                        |
+| ストレージ      | Cloudflare R2 (S3互換)                               |
+| ホスティング    | Google Cloud Run                                     |
 
 ## プロジェクト構造
 
@@ -57,6 +60,14 @@
 - [001_system_design.md](docs/design/001_system_design.md) - システム設計
 - [002_development_process.md](docs/design/002_development_process.md) - 開発プロセス設計
 - [003_pr_template_design.md](docs/design/003_pr_template_design.md) - PRテンプレート設計
+- [004_ai_vlog_generation_design.md](docs/design/004_ai_vlog_generation_design.md) - AI Vlog生成機能設計
+
+### 実装仕様 (`.kiro/specs/`)
+
+- [ai-vlog-generation/](.kiro/specs/ai-vlog-generation/) - AI Vlog生成機能の詳細仕様
+  - requirements.md - 要件定義（8要件、36受入基準）
+  - design.md - 設計書（36プロパティベーステスト仕様）
+  - tasks.md - 実装タスクリスト（13主要タスク）
 
 ## 開発環境セットアップ
 

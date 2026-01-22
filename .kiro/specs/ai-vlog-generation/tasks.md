@@ -1,0 +1,392 @@
+# 実装計画: AI旅行Vlog自動生成機能
+
+## 概要
+
+Firebase Genkit for GoとVertex AI (Gemini 3)、Veo3を活用したAI旅行Vlog自動生成機能の実装計画です。非同期処理、SSEリアルタイム通信、未認証ユーザー対応を含む包括的な実装を行います。
+
+## GitHub Issue作成用詳細情報
+
+各タスクは独立したGitHub Issueとして作成可能です。以下の情報を含めてください：
+
+- **ラベル**: `enhancement`, `backend`, `frontend`, `database`, `ai-integration`
+- **マイルストーン**: AI Vlog Generation v1.0
+- **担当者**: 実装者を指定
+- **関連要件**: 各タスクに記載された要件番号を参照
+
+## タスク
+
+- [ ] 1. データベーススキーマ更新とドメインモデル作成
+  - **GitHub Issue Title**: "データベーススキーマ更新: VlogJob・AnonymousSession対応"
+  - **ファイル**: `backend/db/migrations/20260108194523_init-migration.sql`
+  - **実装内容**:
+    - 既存マイグレーションファイルに以下テーブル追加:
+      - `vlog_jobs`テーブル（ジョブ管理用）
+      - `anonymous_sessions`テーブル（未認証ユーザー管理用）
+    - 既存`vlogs`テーブルにカラム追加: `title`, `description`, `status`, `metadata`
+  - **ドメインモデル作成**:
+    - `backend/internal/domain/vlog_job.go` - VlogJobエンティティ
+    - `backend/internal/domain/anonymous_session.go` - AnonymousSessionエンティティ
+    - BaseModel組み込み、GORMタグ設定
+  - _要件: 7.1, 7.2_
+
+- [ ]\* 1.1 プロパティテスト: データベース整合性
+  - **GitHub Issue Title**: "プロパティテスト: データベース整合性検証"
+  - **プロパティ 27: ジョブ情報記録**
+  - **検証対象: 要件 7.1**
+
+- [ ] 2. リポジトリ層実装
+  - [ ] 2.1 VlogJobRepositoryの実装
+    - **GitHub Issue Title**: "VlogJobRepository実装: ジョブ管理機能"
+    - **ファイル**: `backend/internal/infra/database/vlog_job_repository.go`
+    - **実装内容**:
+      - `Create(ctx context.Context, job *VlogJob) error`
+      - `GetByID(ctx context.Context, id string) (*VlogJob, error)`
+      - `UpdateStatus(ctx context.Context, id string, status JobStatus) error`
+      - `GetActiveJobs(ctx context.Context) ([]*VlogJob, error)`
+    - GORMを使用したデータベース操作
+    - _要件: 7.1, 7.2_
+  - [ ] 2.2 AnonymousSessionRepositoryの実装
+    - **GitHub Issue Title**: "AnonymousSessionRepository実装: 未認証ユーザー管理"
+    - **ファイル**: `backend/internal/infra/database/anonymous_session_repository.go`
+    - **実装内容**:
+      - `Create(ctx context.Context, session *AnonymousSession) error`
+      - `GetByToken(ctx context.Context, token string) (*AnonymousSession, error)`
+      - `Update(ctx context.Context, session *AnonymousSession) error`
+      - `DeleteExpired(ctx context.Context) error`
+    - セッション管理とトークン検証機能
+    - _要件: 4.2, 4.3_
+  - [ ] 2.3 既存VlogRepositoryの拡張
+    - **GitHub Issue Title**: "VlogRepository拡張: 新フィールド対応"
+    - **ファイル**: `backend/internal/infra/database/vlog_repository.go`
+    - **実装内容**:
+      - 既存構造体に新フィールド追加（title, description, status, metadata）
+      - 既存メソッドのクエリ更新
+      - 新フィールドに対応したCRUD操作
+    - _要件: 1.4, 3.4_
+
+- [ ]\* 2.4 プロパティテスト: リポジトリ操作
+  - **GitHub Issue Title**: "プロパティテスト: リポジトリ操作検証"
+  - **プロパティ 28: 生成結果保存**
+  - **検証対象: 要件 7.2**
+
+- [ ] 3. Firebase Genkit AIエージェント実装
+  - [ ] 3.1 Genkitエージェント基盤構築
+    - **GitHub Issue Title**: "Firebase Genkit基盤構築: AIエージェント初期化"
+    - **ファイル**: `backend/internal/infra/genkit/`
+    - **実装内容**:
+      - Firebase Genkit for Go初期化設定
+      - Gemini 3 API統合設定
+      - 設定ファイル管理（API Key、エンドポイント等）
+    - **依存関係**: Firebase Genkit Go SDK
+    - _要件: 1.1, 1.2_
+  - [ ] 3.2 画像分析機能実装
+    - **GitHub Issue Title**: "Gemini 3画像分析機能実装"
+    - **ファイル**: `backend/internal/infra/genkit/image_analyzer.go`
+    - **実装内容**:
+      - Gemini 3による画像内容分析
+      - 感情・ストーリー抽出機能
+      - 複数画像の一括処理
+      - エラーハンドリングとリトライ機能
+    - _要件: 1.2_
+  - [ ] 3.3 Veo3動画生成機能実装
+    - **GitHub Issue Title**: "Veo3動画生成機能実装"
+    - **ファイル**: `backend/internal/infra/genkit/video_generator.go`
+    - **実装内容**:
+      - Veo3 API統合
+      - 動画・スライドショー生成
+      - 非同期処理対応
+      - 生成進行状況追跡
+    - _要件: 1.3_
+
+- [ ]\* 3.4 プロパティテスト: AIエージェント処理
+  - **GitHub Issue Title**: "プロパティテスト: AIエージェント処理検証"
+  - **プロパティ 1: AIエージェント処理開始**
+  - **プロパティ 2: Gemini 3画像分析**
+  - **プロパティ 3: Veo3動画生成**
+  - **検証対象: 要件 1.1, 1.2, 1.3**
+
+- [ ] 4. サービス層実装
+  - [ ] 4.1 VlogServiceの実装
+    - **GitHub Issue Title**: "VlogService実装: Vlog生成ワークフロー管理"
+    - **ファイル**: `backend/internal/service/vlog_service.go`
+    - **実装内容**:
+      - `CreateVlog(ctx context.Context, req CreateVlogRequest) (*CreateVlogResponse, error)`
+      - `GetVlog(ctx context.Context, vlogID string, userID string) (*Vlog, error)`
+      - `GetVlogStatus(ctx context.Context, jobID string) (*JobStatus, error)`
+      - Genkitエージェント呼び出し管理
+      - 非同期ジョブ作成と管理
+    - _要件: 2.1, 2.4_
+  - [ ] 4.2 VlogJobServiceの実装
+    - **GitHub Issue Title**: "VlogJobService実装: ジョブステータス管理"
+    - **ファイル**: `backend/internal/service/vlog_job_service.go`
+    - **実装内容**:
+      - `CreateJob(ctx context.Context, userID *string, sessionToken *string, jobType string) (*VlogJob, error)`
+      - `UpdateJobStatus(ctx context.Context, jobID string, status JobStatus) error`
+      - `GetJob(ctx context.Context, jobID string) (*VlogJob, error)`
+      - 進行状況追跡とSSE通知連携
+    - _要件: 2.2, 2.3_
+  - [ ] 4.3 AnonymousSessionServiceの実装
+    - **GitHub Issue Title**: "AnonymousSessionService実装: 未認証ユーザー管理"
+    - **ファイル**: `backend/internal/service/anonymous_session_service.go`
+    - **実装内容**:
+      - `CreateSession(ctx context.Context) (*AnonymousSession, error)`
+      - `ValidateSession(ctx context.Context, sessionToken string) (*AnonymousSession, error)`
+      - `IncrementUsage(ctx context.Context, sessionToken string) error`
+      - セッション期限管理
+      - 利用制限チェック
+    - _要件: 4.2, 4.3_
+
+- [ ]\* 4.4 プロパティテスト: サービス層ロジック
+  - **GitHub Issue Title**: "プロパティテスト: サービス層ロジック検証"
+  - **プロパティ 6: 非同期ジョブ開始**
+  - **プロパティ 15: 未認証ユーザー初回利用**
+  - **プロパティ 16: 未認証ユーザー利用制限**
+  - **検証対象: 要件 2.1, 4.2, 4.3**
+
+- [ ] 5. SSE（Server-Sent Events）実装
+  - [ ] 5.1 SSE Manager実装
+    - **GitHub Issue Title**: "SSE Manager実装: リアルタイム通信基盤"
+    - **ファイル**: `backend/internal/infra/sse/manager.go`
+    - **実装内容**:
+      - 接続管理（Connection構造体）
+      - イベント配信システム
+      - 接続の追加・削除・クリーンアップ
+      - Goroutineによる並行処理
+    - **技術詳細**: Echo SSE、チャンネル管理、コンテキストキャンセル
+    - _要件: 2.2, 2.3_
+  - [ ] 5.2 進行状況通知機能
+    - **GitHub Issue Title**: "SSE進行状況通知機能実装"
+    - **ファイル**: `backend/internal/infra/sse/progress_notifier.go`
+    - **実装内容**:
+      - ジョブ進行状況のリアルタイム配信
+      - 完了・エラー通知
+      - イベント形式の標準化
+      - 接続エラー時の再接続処理
+    - _要件: 2.4, 2.5_
+
+- [ ]\* 5.3 プロパティテスト: SSE通信
+  - **GitHub Issue Title**: "プロパティテスト: SSE通信検証"
+  - **プロパティ 7: SSE進行状況通知**
+  - **プロパティ 8: 進行状況詳細情報**
+  - **検証対象: 要件 2.2, 2.3**
+- [ ] 6. HTTPハンドラー実装
+  - [ ] 6.1 VlogHandlerの実装
+    - **GitHub Issue Title**: "VlogHandler実装: Vlog生成API"
+    - **ファイル**: `backend/internal/handler/vlog_handler.go`
+    - **実装内容**:
+      - `POST /api/agent/create-vlog` - Vlog生成開始
+      - `GET /api/agent/vlog/{id}` - Vlog詳細取得
+      - `GET /api/agent/vlog/{id}/status` - ジョブステータス取得
+      - リクエスト/レスポンス構造体定義
+      - バリデーション処理
+    - **関連ファイル**: `backend/internal/handler/request/vlog_request.go`, `backend/internal/handler/response/vlog_response.go`
+    - _要件: 8.1, 8.2, 8.3_
+  - [ ] 6.2 SSEHandlerの実装
+    - **GitHub Issue Title**: "SSEHandler実装: リアルタイム通信エンドポイント"
+    - **ファイル**: `backend/internal/handler/sse_handler.go`
+    - **実装内容**:
+      - `GET /api/sse/connect/{jobId}` - SSE接続エンドポイント
+      - 接続認証とセッション管理
+      - 適切なHTTPヘッダー設定
+      - 接続タイムアウト処理
+    - _要件: 2.2_
+  - [ ] 6.3 認証・認可ミドルウェア統合
+    - **GitHub Issue Title**: "認証ミドルウェア統合: Firebase Auth + 未認証ユーザー対応"
+    - **ファイル**: `backend/internal/middleware/auth_middleware.go`
+    - **実装内容**:
+      - 既存Firebase Auth認証との統合
+      - 未認証ユーザーセッション検証
+      - エンドポイント別認証要件設定
+      - エラーレスポンス統一
+    - _要件: 4.1, 4.2, 4.3_
+
+- [ ]\* 6.4 プロパティテスト: API設計
+  - **GitHub Issue Title**: "プロパティテスト: API設計検証"
+  - **プロパティ 32: RESTful API原則**
+  - **プロパティ 33: HTTPステータスコード**
+  - **プロパティ 34: JSON形式の一貫性**
+  - **検証対象: 要件 8.1, 8.2, 8.3**
+
+- [ ] 7. チェックポイント - 基本機能テスト
+  - **GitHub Issue Title**: "チェックポイント: 基本機能統合テスト"
+  - すべてのテストが通ることを確認し、ユーザーに質問があれば確認する
+
+- [ ] 8. エラーハンドリングと監視実装
+  - [ ] 8.1 リトライ機能実装
+    - **GitHub Issue Title**: "リトライ機能実装: 外部API呼び出し保護"
+    - **ファイル**: `backend/pkg/retry/retry.go`
+    - **実装内容**:
+      - 指数バックオフ戦略
+      - 最大リトライ回数設定
+      - リトライ対象エラーの判定
+      - コンテキストキャンセル対応
+    - _要件: 6.2_
+  - [ ] 8.2 サーキットブレーカー実装
+    - **GitHub Issue Title**: "サーキットブレーカー実装: 外部API障害保護"
+    - **ファイル**: `backend/pkg/circuit/breaker.go`
+    - **実装内容**:
+      - 障害検出とサーキット開放
+      - ハーフオープン状態管理
+      - 設定可能な閾値とタイムアウト
+      - メトリクス収集
+    - _要件: 6.2_
+  - [ ] 8.3 構造化ログ実装
+    - **GitHub Issue Title**: "構造化ログ実装: エラー追跡とメトリクス"
+    - **ファイル**: `backend/pkg/logger/structured_logger.go`
+    - **実装内容**:
+      - JSON形式ログ出力
+      - ログレベル管理
+      - トレースID連携
+      - エラーメトリクス収集
+    - _要件: 6.1, 6.5_
+
+- [ ]\* 8.4 プロパティテスト: エラーハンドリング
+  - **GitHub Issue Title**: "プロパティテスト: エラーハンドリング検証"
+  - **プロパティ 5: エラーメッセージの適切性**
+  - **プロパティ 23: エラーログ記録**
+  - **プロパティ 24: 外部APIリトライ**
+  - **検証対象: 要件 1.5, 6.1, 6.2**
+
+- [ ] 9. ストレージ統合実装
+  - [ ] 9.1 Cloudflare R2統合
+    - **GitHub Issue Title**: "Cloudflare R2統合: 動画ストレージ機能"
+    - **ファイル**: `backend/internal/infra/storage/r2_storage.go`
+    - **実装内容**:
+      - AWS S3互換API使用
+      - 生成動画のアップロード機能
+      - メタデータ付きファイル保存
+      - 署名付きURL生成
+    - **設定**: 環境変数、認証情報管理
+    - _要件: 1.4, 3.4_
+  - [ ] 9.2 ファイル管理機能
+    - **GitHub Issue Title**: "ファイル管理機能: 検証・制限・容量管理"
+    - **ファイル**: `backend/internal/service/file_service.go`
+    - **実装内容**:
+      - ファイル形式検証（JPEG, PNG, WebP, MP4, MOV, AVI）
+      - ファイルサイズ制限チェック
+      - 容量管理と古いファイル削除
+      - ウイルススキャン連携（オプション）
+    - _要件: 3.3, 3.5_
+
+- [ ]\* 9.3 プロパティテスト: ストレージ操作
+  - **GitHub Issue Title**: "プロパティテスト: ストレージ操作検証"
+  - **プロパティ 4: ストレージ保存の完全性**
+  - **プロパティ 11: メディア形式サポート**
+  - **プロパティ 12: ファイル検証**
+  - **検証対象: 要件 1.4, 3.1, 3.2, 3.3**
+- [ ] 10. パフォーマンス最適化
+  - [ ] 10.1 キューイングシステム実装
+    - **GitHub Issue Title**: "キューイングシステム実装: 同時処理制限"
+    - **ファイル**: `backend/internal/infra/queue/job_queue.go`
+    - **実装内容**:
+      - ジョブキュー管理
+      - ワーカープール実装
+      - 優先度付きキューイング
+      - デッドレターキュー対応
+    - **技術**: Goルーチン、チャンネル、sync.WaitGroup
+    - _要件: 5.3_
+  - [ ] 10.2 負荷制御実装
+    - **GitHub Issue Title**: "負荷制御実装: レート制限とシステム保護"
+    - **ファイル**: `backend/internal/middleware/rate_limiter.go`
+    - **実装内容**:
+      - IPベースレート制限
+      - ユーザーベースレート制限
+      - システムリソース監視
+      - 動的制限調整
+    - _要件: 5.4_
+  - [ ] 10.3 タイムアウト処理実装
+    - **GitHub Issue Title**: "タイムアウト処理実装: 処理時間制限管理"
+    - **ファイル**: `backend/internal/service/timeout_manager.go`
+    - **実装内容**:
+      - 画像枚数別タイムアウト設定
+      - コンテキストベースタイムアウト
+      - 部分完了時の処理継続判定
+      - タイムアウト時のクリーンアップ
+    - _要件: 2.5, 5.1, 5.2_
+
+- [ ]\* 10.4 プロパティテスト: パフォーマンス
+  - **GitHub Issue Title**: "プロパティテスト: パフォーマンス検証"
+  - **プロパティ 20: 処理時間制限**
+  - **プロパティ 21: 同時処理キューイング**
+  - **プロパティ 22: 負荷制御**
+  - **検証対象: 要件 5.1, 5.2, 5.3, 5.4**
+
+- [ ] 11. フロントエンド統合
+  - [ ] 11.1 APIクライアント実装
+    - **GitHub Issue Title**: "APIクライアント実装: TypeScript型安全API"
+    - **ファイル**: `frontend/api/vlog-api.ts`
+    - **実装内容**:
+      - TypeScript型定義
+      - Vlog生成API呼び出し
+      - エラーハンドリング
+      - 認証ヘッダー管理
+    - **依存関係**: axios, zod（バリデーション）
+    - _要件: 8.1, 8.2, 8.3_
+  - [ ] 11.2 SSEクライアント実装
+    - **GitHub Issue Title**: "SSEクライアント実装: リアルタイム進行状況"
+    - **ファイル**: `frontend/lib/sse-client.ts`
+    - **実装内容**:
+      - EventSource API使用
+      - 接続管理とエラーハンドリング
+      - 自動再接続機能
+      - React Hook統合
+    - _要件: 2.2, 2.3_
+  - [ ] 11.3 UI コンポーネント実装
+    - **GitHub Issue Title**: "UI コンポーネント実装: Vlog生成インターフェース"
+    - **ファイル**:
+      - `frontend/components/vlog/vlog-generation-form.tsx`
+      - `frontend/components/vlog/progress-display.tsx`
+      - `frontend/components/vlog/result-display.tsx`
+    - **実装内容**:
+      - ファイルアップロードフォーム
+      - リアルタイム進行状況表示
+      - 生成結果表示とダウンロード
+      - エラー状態表示
+    - **技術**: shadcn/ui, React Hook Form, TanStack Query
+    - _要件: 2.3, 2.4_
+
+- [ ]\* 11.4 ユニットテスト: フロントエンド
+  - **GitHub Issue Title**: "フロントエンドユニットテスト: コンポーネント・API"
+  - APIクライアントのテスト（Vitest）
+  - SSEクライアントのテスト
+  - UIコンポーネントのテスト（React Testing Library）
+
+- [ ] 12. 統合テストと最終検証
+  - [ ] 12.1 エンドツーエンドテスト
+    - **GitHub Issue Title**: "E2Eテスト: 完全Vlog生成フロー"
+    - **ファイル**: `backend/test/e2e/vlog_generation_test.go`
+    - **実装内容**:
+      - 完全なVlog生成フロー検証
+      - 認証・未認証ユーザーフロー検証
+      - エラーケーステスト
+      - パフォーマンステスト
+    - **技術**: testcontainers, httptest
+    - _要件: 全体_
+  - [ ] 12.2 パフォーマンステスト
+    - **GitHub Issue Title**: "パフォーマンステスト: 負荷・同時処理検証"
+    - **ファイル**: `backend/test/performance/load_test.go`
+    - **実装内容**:
+      - 同時リクエスト処理テスト
+      - 処理時間制限テスト
+      - メモリ・CPU使用量監視
+      - ボトルネック特定
+    - _要件: 5.1, 5.2, 5.3, 5.4_
+
+- [ ]\* 12.3 統合プロパティテスト
+  - **GitHub Issue Title**: "統合プロパティテスト: エンドツーエンド検証"
+  - **プロパティ 9: 完了通知の完全性**
+  - **プロパティ 31: 履歴情報の正確性**
+  - **検証対象: 要件 2.4, 7.5**
+
+- [ ] 13. 最終チェックポイント
+  - **GitHub Issue Title**: "最終チェックポイント: 本番準備確認"
+  - すべてのテストが通ることを確認し、ユーザーに質問があれば確認する
+
+## 注意事項
+
+- `*`マークが付いたタスクはオプションで、MVPでは省略可能
+- 各タスクは前のタスクの完了を前提として設計
+- プロパティテストは最低100回の反復実行を設定
+- 既存の認証ミドルウェアとの統合を重視
+- Firebase Genkit for Goの公式ドキュメントに従った実装
+- 本番適用前のため、既存マイグレーションファイルを直接修正
