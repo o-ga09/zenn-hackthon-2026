@@ -56,6 +56,7 @@
 
 - [001_system_design.md](docs/design/001_system_design.md) - システム設計
 - [002_development_process.md](docs/design/002_development_process.md) - 開発プロセス設計
+- [003_pr_template_design.md](docs/design/003_pr_template_design.md) - PRテンプレート設計
 
 ## 開発環境セットアップ
 
