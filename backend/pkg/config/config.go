@@ -7,11 +7,13 @@ import (
 	"os"
 	"sync"
 
+	"cloud.google.com/go/storage"
 	firebase "firebase.google.com/go/v4"
 	"github.com/caarlos0/env/v6"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/firebase/genkit/go/plugins/googlegenai"
 	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
 type Env string
@@ -25,7 +27,7 @@ type Config struct {
 	Port                      string `env:"PORT" envDefault:"8080"`
 	Database_url              string `env:"DATABASE_URL" envDefault:""`
 	Sentry_DSN                string `env:"SENTRY_DSN" envDefault:""`
-	ProjectID                 string `env:"PROJECT_ID" envDefault:""`
+	ProjectID                 string `env:"PROJECT_ID" envDefault:"tavinikkiy"`
 	CLOUDFLARE_R2_ACCOUNT_ID  string `env:"CLOUDFLARE_R2_ACCOUNT_ID" envDefault:""`
 	CLOUDFLARE_R2_ACCESSKEY   string `env:"CLOUDFLARE_R2_ACCESSKEY" envDefault:""`
 	CLOUDFLARE_R2_SECRETKEY   string `env:"CLOUDFLARE_R2_SECRETKEY" envDefault:""`
@@ -34,6 +36,8 @@ type Config struct {
 	COOKIE_DOMAIN             string `env:"COOKIE_DOMAIN" envDefault:"localhost"`
 	GOOGLE_API_KEY            string `env:"GOOGLE_API_KEY" envDefault:""`
 	BASE_URL                  string `env:"BASE_URL" envDefault:"http://localhost:3000"`
+	GCS_TEMP_BUCKET           string `env:"GCS_TEMP_BUCKET" envDefault:"tavinikkiy-temp"`
+	GCS_LOCATION              string `env:"GCS_LOCATION" envDefault:"us-central1"`
 }
 
 func New(ctx context.Context) (context.Context, error) {
@@ -108,4 +112,42 @@ func GetGenkitCtx(ctx context.Context) *genkit.Genkit {
 		log.Fatal("genkit not found")
 	}
 	return g
+}
+
+// GCSクライアントとGenAIクライアントのシングルトン
+var (
+	gcsClient     *storage.Client
+	gcsClientOnce sync.Once
+	gcsClientErr  error
+
+	genaiClient     *genai.Client
+	genaiClientOnce sync.Once
+	genaiClientErr  error
+)
+
+// GetGCSClient はGCSクライアントを取得します（シングルトン）
+func GetGCSClient(ctx context.Context) (*storage.Client, error) {
+	gcsClientOnce.Do(func() {
+		gcsClient, gcsClientErr = storage.NewClient(ctx)
+		if gcsClientErr != nil {
+			gcsClientErr = fmt.Errorf("failed to create GCS client: %w", gcsClientErr)
+		}
+	})
+	return gcsClient, gcsClientErr
+}
+
+// GetGenAIClient はGoogle Gen AIクライアントを取得します（シングルトン）
+func GetGenAIClient(ctx context.Context) (*genai.Client, error) {
+	genaiClientOnce.Do(func() {
+		cfg := GetCtxEnv(ctx)
+		genaiClient, genaiClientErr = genai.NewClient(ctx, &genai.ClientConfig{
+			Project:  cfg.ProjectID,
+			Location: cfg.GCS_LOCATION,
+			Backend:  genai.BackendVertexAI,
+		})
+		if genaiClientErr != nil {
+			genaiClientErr = fmt.Errorf("failed to create GenAI client: %w", genaiClientErr)
+		}
+	})
+	return genaiClient, genaiClientErr
 }

@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"cloud.google.com/go/storage"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
+	"google.golang.org/genai"
+
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
@@ -55,6 +58,20 @@ func WithAgentMediaRepository(repo domain.IMediaRepository) GenkitAgentOption {
 func WithAgentVlogRepository(repo domain.IVLogRepository) GenkitAgentOption {
 	return func(ga *GenkitAgent) {
 		ga.flowContext.VlogRepo = repo
+	}
+}
+
+// WithAgentGCSClient はGCSClientを設定するオプション
+func WithAgentGCSClient(client *storage.Client) GenkitAgentOption {
+	return func(ga *GenkitAgent) {
+		ga.flowContext.GCSClient = client
+	}
+}
+
+// WithAgentGenAIClient はGenAIClientを設定するオプション
+func WithAgentGenAIClient(client *genai.Client) GenkitAgentOption {
+	return func(ga *GenkitAgent) {
+		ga.flowContext.GenAI = client
 	}
 }
 

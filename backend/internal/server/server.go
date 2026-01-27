@@ -42,9 +42,25 @@ func New(ctx context.Context) *Server {
 	imageHandler := handler.NewImageServer(&mysql.MediaRepository{}, r2Storage)
 	vlogHandler := handler.NewVLogServer(&mysql.VLogRepository{})
 
+	// GCSクライアントの初期化
+	gcsClient, err := config.GetGCSClient(ctx)
+	if err != nil {
+		log.Printf("warning: failed to initialize GCS client: %v", err)
+		// GCSクライアント初期化失敗は警告のみ（Veo機能が使えなくなる）
+	}
+
+	// GenAIクライアントの初期化
+	genaiClient, err := config.GetGenAIClient(ctx)
+	if err != nil {
+		log.Printf("warning: failed to initialize GenAI client: %v", err)
+		// GenAIクライアント初期化失敗は警告のみ（Veo機能が使えなくなる）
+	}
+
 	// GenkitAgent の初期化（依存性注入）
 	genkitAgent := genkit.NewGenkitAgent(ctx,
 		genkit.WithAgentStorage(r2Storage),
+		genkit.WithAgentGCSClient(gcsClient),
+		genkit.WithAgentGenAIClient(genaiClient),
 		genkit.WithBaseURL(env.BASE_URL),
 	)
 	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent)

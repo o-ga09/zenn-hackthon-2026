@@ -3,7 +3,10 @@ package genkit
 import (
 	"context"
 
+	"cloud.google.com/go/storage"
 	"github.com/firebase/genkit/go/genkit"
+	"google.golang.org/genai"
+
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 )
@@ -16,6 +19,8 @@ import (
 type FlowContext struct {
 	Genkit    *genkit.Genkit
 	Storage   domain.IImageStorage
+	GCSClient *storage.Client  // GCSクライアント（Veo一時保存用）
+	GenAI     *genai.Client    // Google Gen AIクライアント（Veo用）
 	MediaRepo domain.IMediaRepository
 	VlogRepo  domain.IVLogRepository
 	Config    *FlowConfig
@@ -28,6 +33,12 @@ type FlowConfig struct {
 	DefaultVideoDuration int
 	ThumbnailWidth       int
 	ThumbnailHeight      int
+	// Veo設定
+	VeoModel           string // Veoモデル名
+	GCSTempBucket      string // GCS一時保存バケット
+	GCSProjectID       string // GCPプロジェクトID
+	VeoPollingInterval int    // ポーリング間隔（秒）
+	VeoMaxWaitTime     int    // 最大待機時間（秒）
 }
 
 // DefaultFlowConfig はデフォルトのFlowConfigを返す
@@ -35,9 +46,15 @@ func DefaultFlowConfig() *FlowConfig {
 	return &FlowConfig{
 		DefaultModel:         "googleai/gemini-2.5-flash",
 		MaxMediaItems:        50,
-		DefaultVideoDuration: 60,
+		DefaultVideoDuration: 8, // Veoは8秒が標準
 		ThumbnailWidth:       1280,
 		ThumbnailHeight:      720,
+		// Veo設定
+		VeoModel:           "veo-3.1-fast-generate-001",
+		GCSTempBucket:      "tavinikkiy-temp",
+		GCSProjectID:       "tavinikkiy",
+		VeoPollingInterval: 5,
+		VeoMaxWaitTime:     120,
 	}
 }
 
@@ -66,6 +83,20 @@ func WithMediaRepository(repo domain.IMediaRepository) FlowContextOption {
 func WithVlogRepository(repo domain.IVLogRepository) FlowContextOption {
 	return func(fc *FlowContext) {
 		fc.VlogRepo = repo
+	}
+}
+
+// WithGCSClient はGCSClientを設定するオプション
+func WithGCSClient(client *storage.Client) FlowContextOption {
+	return func(fc *FlowContext) {
+		fc.GCSClient = client
+	}
+}
+
+// WithGenAIClient はGenAIClientを設定するオプション
+func WithGenAIClient(client *genai.Client) FlowContextOption {
+	return func(fc *FlowContext) {
+		fc.GenAI = client
 	}
 }
 

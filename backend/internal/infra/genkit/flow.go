@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
 
 // ============================================================
@@ -132,86 +130,19 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 
 // generateVlog はAIモデルを使用してVLogを生成する
 func generateVlog(ctx context.Context, g *genkit.Genkit, input *agent.VlogInput, analysisResults []agent.MediaAnalysisOutput, registeredTools *RegisteredTools) (*GenerateVlogVideoOutput, error) {
-	// プロンプトを構築
-	prompt := buildVlogGenerationPrompt(input, analysisResults)
-
-	// AIモデルにVLog生成を依頼（ツールを使用）
-	_, err := genkit.Generate(ctx, g,
-		ai.WithPrompt(prompt),
-		ai.WithTools(registeredTools.GenerateVlogVideo),
-	)
+	// 直接ツールを呼び出してVeo3で動画生成
+	resultRaw, err := registeredTools.GenerateVlogVideo.RunRaw(ctx, GenerateVlogVideoInput{
+		AnalysisResults: analysisResults,
+		Style:           input.Style,
+		Title:           input.Title,
+		MediaItems:      input.MediaItems,
+		UserID:          input.UserID,
+	})
 	if err != nil {
-		// 直接ツールを呼び出す（フォールバック）
-		resultRaw, err := registeredTools.GenerateVlogVideo.RunRaw(ctx, GenerateVlogVideoInput{
-			AnalysisResults: analysisResults,
-			Style:           input.Style,
-			Title:           input.Title,
-			MediaItems:      input.MediaItems,
-		})
-		if err != nil {
-			return nil, err
-		}
-		result := resultRaw.(GenerateVlogVideoOutput)
-		return &result, nil
+		return nil, fmt.Errorf("vlog generation failed: %w", err)
 	}
-
-	// 生成されたビデオIDを生成
-	videoID, _ := ulid.GenerateULID()
-
-	return &GenerateVlogVideoOutput{
-		VideoID:     videoID,
-		VideoURL:    fmt.Sprintf("https://storage.example.com/videos/%s.mp4", videoID),
-		Duration:    float64(input.Style.Duration),
-		Title:       input.Title,
-		Description: "",
-	}, nil
-}
-
-// buildVlogGenerationPrompt はVLog生成用のプロンプトを構築する
-func buildVlogGenerationPrompt(input *agent.VlogInput, analysisResults []agent.MediaAnalysisOutput) string {
-	// 分析結果をサマリー化
-	var locations, activities []string
-	for _, r := range analysisResults {
-		locations = append(locations, r.Landmarks...)
-		activities = append(activities, r.Activities...)
-	}
-
-	prompt := fmt.Sprintf(`あなたは旅行VLog制作のエキスパートです。
-
-以下の情報をもとに、感動的なVLogを生成してください。
-
-## 旅行情報
-- 旅行先: %s
-- 旅行日: %s
-- 訪問した場所: %v
-- アクティビティ: %v
-- メディア数: %d枚
-
-## スタイル設定
-- テーマ: %s
-- BGMの雰囲気: %s
-- 目標再生時間: %d秒
-- トランジション: %s
-
-## タスク
-1. generateVlogVideoツールを使用してVLogを生成してください
-2. 思い出に残る、エモいVLogを作成してください
-3. 各シーンに適切な字幕を付けてください
-
-ユーザーIDは「%s」です。`,
-		input.Destination,
-		input.TravelDate,
-		locations,
-		activities,
-		len(input.MediaItems),
-		input.Style.Theme,
-		input.Style.MusicMood,
-		input.Style.Duration,
-		input.Style.Transition,
-		input.UserID,
-	)
-
-	return prompt
+	result := resultRaw.(GenerateVlogVideoOutput)
+	return &result, nil
 }
 
 // buildAnalyticsSummary は分析結果からサマリーを構築する

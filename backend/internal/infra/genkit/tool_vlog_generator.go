@@ -17,6 +17,7 @@ type GenerateVlogVideoInput struct {
 	Style           agent.VlogStyle             `json:"style" jsonschema:"description=VLogのスタイル設定"`
 	Title           string                      `json:"title,omitempty" jsonschema:"description=VLogのタイトル"`
 	MediaItems      []agent.MediaItem           `json:"mediaItems" jsonschema:"description=元のメディアアイテム"`
+	UserID          string                      `json:"userId,omitempty" jsonschema:"description=ユーザーID"`
 }
 
 // GenerateVlogVideoOutput はVLog動画生成ツールの出力
@@ -32,36 +33,76 @@ type GenerateVlogVideoOutput struct {
 // DefineGenerateVlogVideoTool はVLog動画生成ツールを定義する
 func DefineGenerateVlogVideoTool(g *genkit.Genkit) ai.Tool {
 	return genkit.DefineTool(g, "generateVlogVideo",
-		"分析結果とメディアからVLog動画を生成する",
+		"分析結果とメディアからVLog動画を生成する（Veo3を使用）",
 		func(ctx *ai.ToolContext, input GenerateVlogVideoInput) (GenerateVlogVideoOutput, error) {
 			fc := GetFlowContext(ctx)
 			if fc == nil {
 				return GenerateVlogVideoOutput{}, pkgerrors.ErrFlowContextNotFound
 			}
 
+			// タイトルと説明文を生成
 			title := input.Title
 			description := ""
 			if title == "" {
 				generated, err := generateTitleAndDescription(ctx, fc.Genkit, input.AnalysisResults)
 				if err != nil {
-					return GenerateVlogVideoOutput{}, err
+					// タイトル生成失敗時はデフォルトを使用
+					title = "Travel Vlog"
+					description = ""
+				} else {
+					title = generated.Title
+					description = generated.Description
 				}
-				title = generated.Title
-				description = generated.Description
 			}
 
+			// 字幕を生成
 			subtitles := generateSubtitles(input.AnalysisResults, input.Style)
 
-			videoID := fmt.Sprintf("vlog_%d", len(input.MediaItems))
-			duration := float64(input.Style.Duration)
+			// 分析結果からプロンプト用サマリーを構築
+			summaries := make([]MediaAnalysisSummary, 0, len(input.AnalysisResults))
+			for _, r := range input.AnalysisResults {
+				summaries = append(summaries, MediaAnalysisSummary{
+					Description: r.Description,
+					Landmarks:   r.Landmarks,
+					Activities:  r.Activities,
+					Mood:        r.Mood,
+				})
+			}
+
+			// Veo用プロンプトを構築
+			veoPrompt := BuildVlogPrompt(summaries, VlogStyleConfig{
+				Theme:      input.Style.Theme,
+				MusicMood:  input.Style.MusicMood,
+				Duration:   input.Style.Duration,
+				Transition: input.Style.Transition,
+			})
+
+			// UserIDを取得
+			userID := input.UserID
+			if userID == "" {
+				userID = "anonymous"
+			}
+
+			// Veo3で動画生成
+			duration := int32(input.Style.Duration)
 			if duration == 0 {
-				duration = float64(fc.Config.DefaultVideoDuration)
+				duration = int32(fc.Config.DefaultVideoDuration)
+			}
+
+			veoResult, err := GenerateVideoWithVeo(ctx, fc, VeoGenerateConfig{
+				Prompt:          veoPrompt,
+				DurationSeconds: duration,
+				AspectRatio:     "16:9",
+				UserID:          userID,
+			})
+			if err != nil {
+				return GenerateVlogVideoOutput{}, fmt.Errorf("veo generation failed: %w", err)
 			}
 
 			return GenerateVlogVideoOutput{
-				VideoURL:    fmt.Sprintf("https://storage.example.com/videos/%s.mp4", videoID),
-				VideoID:     videoID,
-				Duration:    duration,
+				VideoURL:    veoResult.VideoURL,
+				VideoID:     veoResult.VideoID,
+				Duration:    veoResult.Duration,
 				Title:       title,
 				Description: description,
 				Subtitles:   subtitles,
