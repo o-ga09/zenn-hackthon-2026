@@ -33,6 +33,7 @@ type Config struct {
 	CLOUDFLARE_R2_PUBLIC_URL  string `env:"CLOUDFLARE_R2_PUBLIC_URL" envDefault:"http://localhost:4566"`
 	COOKIE_DOMAIN             string `env:"COOKIE_DOMAIN" envDefault:"localhost"`
 	GOOGLE_API_KEY            string `env:"GOOGLE_API_KEY" envDefault:""`
+	BASE_URL                  string `env:"BASE_URL" envDefault:"http://localhost:3000"`
 }
 
 func New(ctx context.Context) (context.Context, error) {
@@ -87,6 +88,14 @@ func InitGenAI(ctx context.Context) context.Context {
 	// Initialize Genkit with the Google AI plugin
 	g := genkit.Init(ctx,
 		genkit.WithPlugins(&googlegenai.GoogleAI{}),
+		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
+	)
+	return context.WithValue(ctx, CtxGenAIKey, g)
+}
+
+func InitVertexAI(ctx context.Context) context.Context {
+	g := genkit.Init(ctx,
+		genkit.WithPlugins(&googlegenai.VertexAI{ProjectID: "tavinikkiy", Location: "us-central1"}),
 		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
 	)
 	return context.WithValue(ctx, CtxGenAIKey, g)

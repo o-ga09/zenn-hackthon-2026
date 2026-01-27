@@ -40,6 +40,7 @@ func (s *Server) SetupApplicationRoute() {
 	// AIエージェントAPI
 	agentGroup := apiRoot.Group("/agent", AuthMiddleware())
 	{
-		agentGroup.POST("/create-vlog", s.Agent.CreateVLog) // VLog作成
+		agentGroup.POST("/create-vlog", s.Agent.CreateVLog)     // VLog作成
+		agentGroup.POST("/analyze-media", s.Agent.AnalyzeMedia) // メディア分析
 	}
 }

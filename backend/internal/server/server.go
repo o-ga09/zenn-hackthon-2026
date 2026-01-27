@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/genkit"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
@@ -40,7 +41,13 @@ func New(ctx context.Context) *Server {
 	authHandler := handler.NewAuthServer(&mysql.UserRepository{}, r2Storage)
 	imageHandler := handler.NewImageServer(&mysql.MediaRepository{}, r2Storage)
 	vlogHandler := handler.NewVLogServer(&mysql.VLogRepository{})
-	agentHandler := handler.NewAgentServer(ctx, r2Storage)
+
+	// GenkitAgent の初期化（依存性注入）
+	genkitAgent := genkit.NewGenkitAgent(ctx,
+		genkit.WithAgentStorage(r2Storage),
+		genkit.WithBaseURL(env.BASE_URL),
+	)
+	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent)
 
 	// Echoインスタンス作成
 	e := echo.New()

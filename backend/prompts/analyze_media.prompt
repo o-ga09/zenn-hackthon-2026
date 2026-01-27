@@ -1,0 +1,65 @@
+---
+model: googleai/gemini-2.5-flash
+input:
+  schema:
+    type: object
+    properties:
+      mediaType:
+        type: string
+        description: メディアタイプ（画像/動画）
+      fileId:
+        type: string
+        description: ファイルID
+    required:
+      - mediaType
+      - fileId
+output:
+  schema:
+    type: object
+    properties:
+      description:
+        type: string
+        description: シーンの詳細な説明
+      objects:
+        type: array
+        items:
+          type: string
+        description: 検出されたオブジェクト
+      landmarks:
+        type: array
+        items:
+          type: string
+        description: 検出されたランドマーク
+      activities:
+        type: array
+        items:
+          type: string
+        description: 検出されたアクティビティ
+      mood:
+        type: string
+        description: シーンの雰囲気
+      suggestedCaption:
+        type: string
+        description: 提案キャプション
+---
+
+この{{mediaType}}を分析し、以下の情報を抽出してください。
+
+## 分析対象
+ファイルID: {{fileId}}
+
+## 抽出する情報
+
+1. **description**: シーン全体の詳細な説明（日本語、2-3文）
+2. **objects**: 検出されたオブジェクト（人物、動物、物体など）のリスト
+3. **landmarks**: 検出されたランドマーク・観光地・有名な場所のリスト
+4. **activities**: 検出されたアクティビティ（散歩、食事、観光など）のリスト
+5. **mood**: シーンの雰囲気（楽しい、穏やか、エキサイティング、ロマンチック、など1単語）
+6. **suggestedCaption**: VLogに使用する短いキャプション提案（10-20文字程度、エモい感じで）
+
+## コンテキスト
+旅行の思い出を振り返る「VLog」制作のための分析です。
+以下の点に特に注目してください：
+- 旅行先・観光地の特定
+- 思い出に残りそうなシーンの特定
+- 感情・雰囲気の把握

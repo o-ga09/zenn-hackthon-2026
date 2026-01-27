@@ -1,0 +1,68 @@
+---
+model: googleai/gemini-2.5-flash
+input:
+  schema:
+    type: object
+    properties:
+      destination:
+        type: string
+        description: 旅行先
+      travelDate:
+        type: string
+        description: 旅行日
+      locations:
+        type: array
+        items:
+          type: string
+        description: 訪問した場所
+      activities:
+        type: array
+        items:
+          type: string
+        description: アクティビティ
+      mediaCount:
+        type: integer
+        description: メディア数
+      theme:
+        type: string
+        description: テーマ
+      musicMood:
+        type: string
+        description: BGMの雰囲気
+      duration:
+        type: integer
+        description: 目標再生時間（秒）
+      transition:
+        type: string
+        description: トランジション効果
+      userId:
+        type: string
+        description: ユーザーID
+    required:
+      - userId
+      - mediaCount
+---
+
+あなたは旅行VLog制作のエキスパートです。
+
+以下の情報をもとに、感動的なVLogを生成してください。
+
+## 旅行情報
+- 旅行先: {{destination}}
+- 旅行日: {{travelDate}}
+- 訪問した場所: {{#each locations}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+- アクティビティ: {{#each activities}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+- メディア数: {{mediaCount}}枚
+
+## スタイル設定
+- テーマ: {{theme}}
+- BGMの雰囲気: {{musicMood}}
+- 目標再生時間: {{duration}}秒
+- トランジション: {{transition}}
+
+## タスク
+1. `generateVlogVideo`ツールを使用してVLogを生成してください
+2. 思い出に残る、エモいVLogを作成してください
+3. 各シーンに適切な字幕を付けてください
+
+ユーザーID: {{userId}}

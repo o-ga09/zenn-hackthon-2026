@@ -1,0 +1,54 @@
+---
+model: googleai/gemini-2.5-flash
+input:
+  schema:
+    type: object
+    properties:
+      locations:
+        type: array
+        items:
+          type: string
+        description: ロケーション
+      activities:
+        type: array
+        items:
+          type: string
+        description: アクティビティ
+      moods:
+        type: array
+        items:
+          type: string
+        description: 雰囲気
+    required:
+      - locations
+      - activities
+      - moods
+output:
+  schema:
+    type: object
+    properties:
+      title:
+        type: string
+        description: VLogのタイトル
+      description:
+        type: string
+        description: VLogの説明文
+    required:
+      - title
+      - description
+---
+
+以下の旅行分析結果から、VLogのタイトルと説明文を生成してください。
+
+## 分析結果
+- ロケーション: {{#each locations}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+- アクティビティ: {{#each activities}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+- 雰囲気: {{#each moods}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+
+## 要件
+- **タイトル**: 20文字以内、キャッチーでエモい表現
+- **説明文**: 100文字程度、思い出を振り返る温かみのある内容
+
+## 例
+タイトル: 「海と夕日の二人旅」
+説明文: 「湘南の海辺で過ごした特別な週末。波の音を聴きながら、ゆっくりと流れる時間を楽しみました。」
