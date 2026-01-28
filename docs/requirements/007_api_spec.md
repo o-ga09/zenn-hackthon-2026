@@ -4,8 +4,105 @@
 
 ### 6.1 エンドポイント
 
-#### POST /api/create-vlog
-**説明:** 旅行Vlogを自動生成（要認証・トークン消費）
+#### POST /api/agent/create-vlog
+**説明:** 旅行Vlogを自動生成（Veo3使用）
+
+**認証:** Firebase ID Token
+
+**リクエスト:**
+```
+Content-Type: multipart/form-data
+Authorization: Bearer <firebase_id_token>
+
+フォームフィールド:
+- files: File[]          (必須) メディアファイル（複数可、画像・動画）
+- title: string          (任意) VLogのタイトル
+- travelDate: string     (任意) 旅行日（YYYY-MM-DD形式）
+- destination: string    (任意) 旅行先
+- theme: string          (任意) テーマ（adventure/relaxing/romantic/family）
+- musicMood: string      (任意) BGMの雰囲気
+- duration: int          (任意) 目標再生時間（秒、デフォルト8）
+- transition: string     (任意) トランジション効果（fade/slide/zoom）
+```
+
+**curlでの使用例:**
+```bash
+curl -X POST http://localhost:8080/api/agent/create-vlog \
+  -H "Authorization: Bearer <firebase_id_token>" \
+  -F "files=@photo1.jpg" \
+  -F "files=@photo2.jpg" \
+  -F "files=@video1.mp4" \
+  -F "title=沖縄旅行の思い出" \
+  -F "destination=沖縄" \
+  -F "travelDate=2026-01-15" \
+  -F "theme=adventure" \
+  -F "musicMood=upbeat" \
+  -F "duration=8"
+```
+
+**レスポンス (JSON):**
+```json
+{
+  "videoId": "01HXYZ123ABC",
+  "videoUrl": "https://r2.example.com/users/user123/vlogs/01HXYZ123ABC.mp4",
+  "shareUrl": "https://tavinikkiy.example.com/share/ABCDEF",
+  "thumbnailUrl": "https://r2.example.com/thumbnails/01HXYZ123ABC.jpg",
+  "duration": 8.0,
+  "title": "沖縄旅行の思い出",
+  "description": "青い海と白い砂浜で過ごした最高の休日",
+  "subtitles": [
+    {
+      "startTime": 0.0,
+      "endTime": 2.5,
+      "text": "美しい沖縄の海で癒しのひととき"
+    }
+  ],
+  "analytics": {
+    "locations": ["沖縄", "ビーチ"],
+    "activities": ["海水浴", "シュノーケリング"],
+    "mood": "relaxing",
+    "highlights": ["美しい沖縄の海で癒しのひととき"],
+    "mediaCount": 3
+  }
+}
+```
+
+**エラーレスポンス:**
+```json
+{
+  "error": "No files uploaded. Please upload at least one media file."
+}
+```
+
+#### POST /api/agent/analyze-media
+**説明:** 単一メディアを分析
+
+**認証:** Firebase ID Token
+
+**リクエスト:**
+```json
+{
+  "fileId": "media_001",
+  "url": "https://storage.example.com/images/photo1.jpg",
+  "type": "image",
+  "contentType": "image/jpeg"
+}
+```
+
+**レスポンス:**
+```json
+{
+  "description": "青い海と白い砂浜の風景",
+  "landmarks": ["沖縄", "ビーチ"],
+  "activities": ["海水浴", "シュノーケリング"],
+  "mood": "relaxing",
+  "suggestedCaption": "美しい沖縄の海で癒しのひととき",
+  "fileId": "media_001"
+}
+```
+
+#### POST /api/create-vlog (レガシー・SSE対応)
+**説明:** 旅行Vlogを自動生成（要認証・トークン消費）- SSE進捗通知版
 
 **認証:** Firebase ID Token
 
