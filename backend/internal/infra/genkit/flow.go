@@ -2,6 +2,7 @@ package genkit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/firebase/genkit/go/core"
@@ -55,7 +56,7 @@ func RegisterVlogFlow(g *genkit.Genkit, registeredTools *RegisteredTools) VlogFl
 				ThumbnailURL: "",
 			}
 		} else {
-			thumbnailResult = thumbnailRaw.(GenerateThumbnailOutput)
+			thumbnailResult, _ = convertToStruct[GenerateThumbnailOutput](thumbnailRaw)
 		}
 
 		// Step 4: 共有URL生成
@@ -66,7 +67,10 @@ func RegisterVlogFlow(g *genkit.Genkit, registeredTools *RegisteredTools) VlogFl
 		if err != nil {
 			return nil, fmt.Errorf("share URL generation failed: %w", err)
 		}
-		shareResult := shareRaw.(GenerateShareURLOutput)
+		shareResult, err := convertToStruct[GenerateShareURLOutput](shareRaw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse share result: %w", err)
+		}
 
 		// 分析サマリーを構築
 		analytics := buildAnalyticsSummary(analysisResults, len(input.MediaItems))
@@ -105,24 +109,34 @@ func validateVlogInput(input *agent.VlogInput, config *FlowConfig) error {
 // analyzeAllMedia は全メディアを分析する
 func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredTools *RegisteredTools) ([]agent.MediaAnalysisOutput, error) {
 	results := make([]agent.MediaAnalysisOutput, 0, len(items))
+	var allErrors []error
 
 	for _, item := range items {
-		resultRaw, err := registeredTools.AnalyzeMedia.RunRaw(ctx, agent.MediaAnalysisInput{
+		resultRaw, analyzeErr := registeredTools.AnalyzeMedia.RunRaw(ctx, agent.MediaAnalysisInput{
 			FileID:      item.FileID,
 			URL:         item.URL,
 			Type:        item.Type,
 			ContentType: item.ContentType,
 		})
-		if err != nil {
-			// 分析失敗は警告として続行
+		if analyzeErr != nil {
+			allErrors = append(allErrors, analyzeErr)
 			continue
 		}
-		result := resultRaw.(agent.MediaAnalysisOutput)
+
+		// RunRawはmap[string]interface{}を返すのでJSONを経由して変換
+		result, err := convertToStruct[agent.MediaAnalysisOutput](resultRaw)
+		if err != nil {
+			allErrors = append(allErrors, fmt.Errorf("failed to convert result: %w", err))
+			continue
+		}
 		results = append(results, result)
 	}
 
 	if len(results) == 0 {
-		return nil, errors.ErrMediaAnalysisFailed
+		if len(allErrors) > 0 {
+			return nil, errors.Join(allErrors...)
+		}
+		return nil, errors.ErrNoMediaItems
 	}
 
 	return results, nil
@@ -141,7 +155,12 @@ func generateVlog(ctx context.Context, g *genkit.Genkit, input *agent.VlogInput,
 	if err != nil {
 		return nil, fmt.Errorf("vlog generation failed: %w", err)
 	}
-	result := resultRaw.(GenerateVlogVideoOutput)
+
+	// RunRawはmap[string]interface{}を返すのでJSONを経由して変換
+	result, err := convertToStruct[GenerateVlogVideoOutput](resultRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert result: %w", err)
+	}
 	return &result, nil
 }
 
@@ -192,4 +211,27 @@ func buildAnalyticsSummary(results []agent.MediaAnalysisOutput, mediaCount int) 
 		Highlights: highlights,
 		MediaCount: mediaCount,
 	}
+}
+
+// TODO: refactor
+// convertToStruct はinterface{}（通常はmap[string]interface{}）を指定した構造体に変換する
+func convertToStruct[T any](raw interface{}) (T, error) {
+	var result T
+
+	// すでに目的の型の場合はそのまま返す
+	if typed, ok := raw.(T); ok {
+		return typed, nil
+	}
+
+	// JSONを経由して変換
+	jsonBytes, err := json.Marshal(raw)
+	if err != nil {
+		return result, fmt.Errorf("failed to marshal to JSON: %w", err)
+	}
+
+	if err := json.Unmarshal(jsonBytes, &result); err != nil {
+		return result, fmt.Errorf("failed to unmarshal from JSON: %w", err)
+	}
+
+	return result, nil
 }

@@ -79,25 +79,49 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 		return nil, fmt.Errorf("failed to start video generation: %w", err)
 	}
 
-	// オペレーション完了を待機
+	// オペレーション完了を待機（バックグラウンドコンテキストを使用してHTTPタイムアウトを回避）
 	maxWait := time.Duration(fc.Config.VeoMaxWaitTime) * time.Second
 	pollInterval := time.Duration(fc.Config.VeoPollingInterval) * time.Second
 	startTime := time.Now()
+
+	// Veoポーリング用に独立したコンテキストを使用
+	veoCtx := context.Background()
+
+	fmt.Printf("[Veo] Starting video generation with prompt: %s\n", config.Prompt[:min(100, len(config.Prompt))])
+	fmt.Printf("[Veo] Output path: %s\n", gcsOutputPath)
 
 	for !op.Done {
 		if time.Since(startTime) > maxWait {
 			return nil, fmt.Errorf("video generation timed out after %v", maxWait)
 		}
+		elapsed := time.Since(startTime).Seconds()
+		fmt.Printf("[Veo] Polling... (%.0fs elapsed)\n", elapsed)
 		time.Sleep(pollInterval)
-		op, err = fc.GenAI.Operations.GetVideosOperation(ctx, op, nil)
+		op, err = fc.GenAI.Operations.GetVideosOperation(veoCtx, op, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get operation status: %w", err)
 		}
 	}
 
+	fmt.Printf("[Veo] Operation completed. Done=%v\n", op.Done)
+
+	// オペレーション全体をデバッグ出力
+	fmt.Printf("[Veo] Operation Name: %s\n", op.Name)
+	if op.Error != nil {
+		return nil, fmt.Errorf("veo operation error: error=%d", op.Error)
+	}
+
 	// エラーチェック
-	if op.Response == nil || len(op.Response.GeneratedVideos) == 0 {
-		return nil, fmt.Errorf("no video generated")
+	if op.Response == nil {
+		fmt.Printf("[Veo] Response is nil\n")
+		return nil, fmt.Errorf("no response from Veo API")
+	}
+
+	fmt.Printf("[Veo] Response received. GeneratedVideos count: %d\n", len(op.Response.GeneratedVideos))
+
+	if len(op.Response.GeneratedVideos) == 0 {
+		// エラー詳細を出力
+		return nil, fmt.Errorf("no video generated (response empty)")
 	}
 
 	generatedVideo := op.Response.GeneratedVideos[0]
@@ -177,36 +201,60 @@ func parseGCSURI(gcsURI string) (bucket, object string, err error) {
 
 // BuildVlogPrompt はVLog生成用のプロンプトを構築する
 func BuildVlogPrompt(analysisResults []MediaAnalysisSummary, style VlogStyleConfig) string {
-	prompt := "Create a cinematic travel vlog video with the following elements:\n\n"
+	// Veo向けに安全で効果的なプロンプトを構築
+	prompt := "Create a beautiful travel vlog video. "
 
+	// シーン情報を英語ベースで構築（安全性のため）
 	if len(analysisResults) > 0 {
-		prompt += "Scenes to include:\n"
-		for i, result := range analysisResults {
-			prompt += fmt.Sprintf("- Scene %d: %s\n", i+1, result.Description)
-			if len(result.Landmarks) > 0 {
-				prompt += fmt.Sprintf("  Landmarks: %s\n", strings.Join(result.Landmarks, ", "))
-			}
-			if len(result.Activities) > 0 {
-				prompt += fmt.Sprintf("  Activities: %s\n", strings.Join(result.Activities, ", "))
-			}
+		// ランドマークと活動を収集
+		var landmarks []string
+		var activities []string
+		var moods []string
+
+		for _, result := range analysisResults {
+			landmarks = append(landmarks, result.Landmarks...)
+			activities = append(activities, result.Activities...)
 			if result.Mood != "" {
-				prompt += fmt.Sprintf("  Mood: %s\n", result.Mood)
+				moods = append(moods, result.Mood)
 			}
 		}
-		prompt += "\n"
+
+		if len(landmarks) > 0 {
+			// 最大3つのランドマークを使用
+			if len(landmarks) > 3 {
+				landmarks = landmarks[:3]
+			}
+			prompt += fmt.Sprintf("Feature these locations: %s. ", strings.Join(landmarks, ", "))
+		}
+
+		if len(activities) > 0 {
+			// 最大3つのアクティビティを使用
+			if len(activities) > 3 {
+				activities = activities[:3]
+			}
+			prompt += fmt.Sprintf("Show activities like: %s. ", strings.Join(activities, ", "))
+		}
+
+		if len(moods) > 0 {
+			prompt += fmt.Sprintf("The overall mood should be %s. ", moods[0])
+		}
 	}
 
+	// スタイル設定（英語のみ）
+	themeDescriptions := map[string]string{
+		"adventure": "exciting and adventurous",
+		"relaxing":  "calm and peaceful",
+		"romantic":  "warm and romantic",
+		"family":    "joyful and family-friendly",
+	}
 	if style.Theme != "" {
-		prompt += fmt.Sprintf("Theme: %s\n", style.Theme)
-	}
-	if style.MusicMood != "" {
-		prompt += fmt.Sprintf("Music mood: %s\n", style.MusicMood)
-	}
-	if style.Transition != "" {
-		prompt += fmt.Sprintf("Transitions: %s style\n", style.Transition)
+		if desc, ok := themeDescriptions[style.Theme]; ok {
+			prompt += fmt.Sprintf("Style: %s. ", desc)
+		}
 	}
 
-	prompt += "\nStyle: Smooth transitions, vibrant colors, emotional storytelling. "
+	prompt += "Use smooth camera movements, vibrant colors, and cinematic transitions. "
+	prompt += "Professional travel documentary style with natural lighting."
 	prompt += "Make it feel like a professional travel vlog that captures the essence of the journey."
 
 	return prompt

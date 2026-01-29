@@ -1,7 +1,10 @@
 package genkit
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -43,10 +46,16 @@ func DefineAnalyzeMediaTool(g *genkit.Genkit) ai.Tool {
 				FileID:    input.FileID,
 			}
 
-			// メディアパーツを追加
+			// メディアパーツを追加（URLからデータを取得してBase64で渡す）
 			var mediaParts []*ai.Part
 			if input.Type == "image" || input.Type == "video" {
-				mediaParts = append(mediaParts, ai.NewResourcePart(input.URL))
+				mediaData, contentType, err := fetchMediaData(input.URL, input.ContentType)
+				if err != nil {
+					return agent.MediaAnalysisOutput{}, fmt.Errorf("%w: failed to fetch media: %v", pkgerrors.ErrMediaAnalysisFailed, err)
+				}
+				// Base64エンコードしてdata URIとして渡す
+				dataURI := fmt.Sprintf("data:%s;base64,%s", contentType, base64.StdEncoding.EncodeToString(mediaData))
+				mediaParts = append(mediaParts, ai.NewMediaPart(contentType, dataURI))
 			}
 
 			// プロンプトを実行
@@ -67,6 +76,36 @@ func DefineAnalyzeMediaTool(g *genkit.Genkit) ai.Tool {
 			return result, nil
 		},
 	)
+}
+
+// TODO: refactor
+// fetchMediaData はURLからメディアデータを取得する
+func fetchMediaData(url string, fallbackContentType string) ([]byte, string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch media from URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("failed to fetch media: status %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read media data: %w", err)
+	}
+
+	// Content-Typeを取得
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = fallbackContentType
+	}
+	if contentType == "" {
+		contentType = http.DetectContentType(data)
+	}
+
+	return data, contentType, nil
 }
 
 // BatchAnalysisInput は複数メディアの一括分析入力

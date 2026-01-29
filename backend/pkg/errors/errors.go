@@ -261,3 +261,10 @@ func getCallstack(err error) string {
 	}
 	return msg
 }
+
+func Join(err ...error) error {
+	if err == nil {
+		return nil
+	}
+	return errors.Join(err...)
+}

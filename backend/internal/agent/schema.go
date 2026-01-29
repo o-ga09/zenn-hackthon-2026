@@ -18,7 +18,7 @@ type VlogInput struct {
 type MediaItem struct {
 	FileID      string `json:"fileId" jsonschema:"description=ファイルID,required"`
 	URL         string `json:"url" jsonschema:"description=メディアのURL,required"`
-	Type        string `json:"type" jsonschema:"description=メディアタイプ（image/video）,required,enum=image|video"`
+	Type        string `json:"type" jsonschema:"description=メディアタイプ（image または video）,required"`
 	ContentType string `json:"contentType" jsonschema:"description=MIMEタイプ"`
 	Timestamp   string `json:"timestamp,omitempty" jsonschema:"description=撮影日時（ISO 8601形式）"`
 	Order       int    `json:"order,omitempty" jsonschema:"description=表示順序"`
@@ -54,11 +54,11 @@ type SubtitleEntry struct {
 
 // VlogAnalytics はVLog全体の分析結果サマリー
 type VlogAnalytics struct {
-	Locations   []string `json:"locations" jsonschema:"description=検出されたロケーション"`
-	Activities  []string `json:"activities" jsonschema:"description=検出されたアクティビティ"`
-	Mood        string   `json:"mood" jsonschema:"description=全体の雰囲気"`
-	Highlights  []string `json:"highlights" jsonschema:"description=ハイライトシーンの説明"`
-	MediaCount  int      `json:"mediaCount" jsonschema:"description=使用されたメディア数"`
+	Locations  []string `json:"locations" jsonschema:"description=検出されたロケーション"`
+	Activities []string `json:"activities" jsonschema:"description=検出されたアクティビティ"`
+	Mood       string   `json:"mood" jsonschema:"description=全体の雰囲気"`
+	Highlights []string `json:"highlights" jsonschema:"description=ハイライトシーンの説明"`
+	MediaCount int      `json:"mediaCount" jsonschema:"description=使用されたメディア数"`
 }
 
 // ============================================================
@@ -75,14 +75,14 @@ type MediaAnalysisInput struct {
 
 // MediaAnalysisOutput はメディア分析ツールの出力
 type MediaAnalysisOutput struct {
-	FileID      string   `json:"fileId" jsonschema:"description=ファイルID"`
-	Type        string   `json:"type" jsonschema:"description=メディアタイプ"`
-	Description string   `json:"description" jsonschema:"description=シーンの説明"`
-	Objects     []string `json:"objects" jsonschema:"description=検出されたオブジェクト"`
-	Landmarks   []string `json:"landmarks" jsonschema:"description=検出されたランドマーク・観光地"`
-	Activities  []string `json:"activities" jsonschema:"description=検出されたアクティビティ"`
-	Mood        string   `json:"mood" jsonschema:"description=シーンの雰囲気"`
-	SuggestedCaption string `json:"suggestedCaption" jsonschema:"description=提案されるキャプション"`
+	FileID           string   `json:"fileId" jsonschema:"description=ファイルID"`
+	Type             string   `json:"type" jsonschema:"description=メディアタイプ"`
+	Description      string   `json:"description" jsonschema:"description=シーンの説明"`
+	Objects          []string `json:"objects" jsonschema:"description=検出されたオブジェクト"`
+	Landmarks        []string `json:"landmarks" jsonschema:"description=検出されたランドマーク・観光地"`
+	Activities       []string `json:"activities" jsonschema:"description=検出されたアクティビティ"`
+	Mood             string   `json:"mood" jsonschema:"description=シーンの雰囲気"`
+	SuggestedCaption string   `json:"suggestedCaption" jsonschema:"description=提案されるキャプション"`
 }
 
 // ============================================================
@@ -102,13 +102,13 @@ type FlowProgress struct {
 type FlowStep string
 
 const (
-	StepInitializing   FlowStep = "initializing"
-	StepAnalyzing      FlowStep = "analyzing"
+	StepInitializing    FlowStep = "initializing"
+	StepAnalyzing       FlowStep = "analyzing"
 	StepGeneratingVideo FlowStep = "generating_video"
 	StepUploadingVideo  FlowStep = "uploading_video"
-	StepFinalizing     FlowStep = "finalizing"
-	StepCompleted      FlowStep = "completed"
-	StepFailed         FlowStep = "failed"
+	StepFinalizing      FlowStep = "finalizing"
+	StepCompleted       FlowStep = "completed"
+	StepFailed          FlowStep = "failed"
 )
 
 // ============================================================

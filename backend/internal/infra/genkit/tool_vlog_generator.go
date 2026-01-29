@@ -13,10 +13,10 @@ const defaultShortDuration = 15.0 // デフォルトの短い動画の長さ（�
 
 // GenerateVlogVideoInput はVLog動画生成ツールの入力
 type GenerateVlogVideoInput struct {
-	AnalysisResults []agent.MediaAnalysisOutput `json:"analysisResults" jsonschema:"description=メディア分析結果のリスト"`
-	Style           agent.VlogStyle             `json:"style" jsonschema:"description=VLogのスタイル設定"`
+	AnalysisResults []agent.MediaAnalysisOutput `json:"analysisResults,omitempty" jsonschema:"description=メディア分析結果のリスト"`
+	Style           agent.VlogStyle             `json:"style,omitempty" jsonschema:"description=VLogのスタイル設定"`
 	Title           string                      `json:"title,omitempty" jsonschema:"description=VLogのタイトル"`
-	MediaItems      []agent.MediaItem           `json:"mediaItems" jsonschema:"description=元のメディアアイテム"`
+	MediaItems      []agent.MediaItem           `json:"mediaItems,omitempty" jsonschema:"description=元のメディアアイテム"`
 	UserID          string                      `json:"userId,omitempty" jsonschema:"description=ユーザーID"`
 }
 
@@ -83,10 +83,11 @@ func DefineGenerateVlogVideoTool(g *genkit.Genkit) ai.Tool {
 				userID = "anonymous"
 			}
 
-			// Veo3で動画生成
+			// Veo3で動画生成（サポートされる長さ: 4, 6, 8秒のみ）
 			duration := int32(input.Style.Duration)
-			if duration == 0 {
-				duration = int32(fc.Config.DefaultVideoDuration)
+			// Veo 3.1がサポートするのは 4, 6, 8 秒のみ
+			if duration != 4 && duration != 6 && duration != 8 {
+				duration = 8 // デフォルトは8秒
 			}
 
 			veoResult, err := GenerateVideoWithVeo(ctx, fc, VeoGenerateConfig{
