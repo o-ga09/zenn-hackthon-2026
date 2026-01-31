@@ -12,12 +12,18 @@ export const setCurrentUserID = (userID: string) => {
 }
 
 // Axiosインスタンスを作成
+// 認証が必要なAPI
 const apiClient = axios.create({
   baseURL: `${baseURL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Cookieを送受信するために必要
+})
+
+// 認証不要なAPI
+const noCredentialApiClient = axios.create({
+  baseURL: `${baseURL}/api`,
 })
 
 // リクエストインターセプターでFirebaseの認証トークンをヘッダーに追加
@@ -46,4 +52,7 @@ apiClient.interceptors.request.use(async config => {
   }
 })
 
-export default apiClient
+export {
+  apiClient,
+  noCredentialApiClient,
+}

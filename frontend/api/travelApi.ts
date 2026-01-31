@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import apiClient from './client'
+import {apiClient} from './client'
 import { Travel, TravelInput, TravelsResponse } from './types'
 
 // キャッシュのキー

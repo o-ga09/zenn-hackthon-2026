@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import apiClient from './client'
+import {apiClient} from './client'
 import { VLOGS_QUERY_KEY } from './vlogAPi'
 
 // サンプルレスポンス型定義
