@@ -142,7 +142,6 @@ CREATE TABLE IF NOT EXISTS media_analytics (
     create_user_id VARCHAR(255) NULL COMMENT '作成者のユーザーID',
     update_user_id VARCHAR(255) NULL COMMENT '更新者のユーザーID',
     file_id VARCHAR(255) NOT NULL COMMENT 'ファイルID',
-    type VARCHAR(50) NOT NULL COMMENT 'MIMEタイプ',
     description TEXT NOT NULL COMMENT '全体的な説明',
     mood VARCHAR(100) NOT NULL COMMENT '雰囲気（楽しい、穏やか、など）',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -151,7 +150,6 @@ CREATE TABLE IF NOT EXISTS media_analytics (
     CONSTRAINT uc_file_id UNIQUE (file_id),
     CONSTRAINT fk_media_analytics_file_id FOREIGN KEY (file_id) REFERENCES media (id),
     INDEX idx_file_id (file_id),
-    INDEX idx_type (type),
     INDEX idx_deleted_at (deleted_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 

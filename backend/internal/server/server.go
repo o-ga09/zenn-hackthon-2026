@@ -65,6 +65,8 @@ func New(ctx context.Context) *Server {
 
 	// GenkitAgent の初期化（依存性注入）
 	mediaAnalyticsRepo := &mysql.MediaAnalyticsRepository{}
+	txManager := mysql.NewTransactionManager()
+
 	genkitAgent := genkit.NewGenkitAgent(ctx,
 		genkit.WithAgentStorage(r2Storage),
 		genkit.WithAgentGCSClient(gcsClient),
@@ -74,7 +76,7 @@ func New(ctx context.Context) *Server {
 	)
 	vlogRepo := &mysql.VLogRepository{}
 	mediaRepo := &mysql.MediaRepository{}
-	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, mediaRepo, taskClient)
+	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, mediaRepo, mediaAnalyticsRepo, taskClient, txManager)
 
 	// Echoインスタンス作成
 	e := echo.New()

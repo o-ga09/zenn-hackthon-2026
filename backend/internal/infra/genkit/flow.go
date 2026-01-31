@@ -138,11 +138,21 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 			analytics := &domain.MediaAnalytics{
 				FileID:      result.FileID,
 				Description: result.Description,
-				Objects:     result.Objects,
-				Landmarks:   result.Landmarks,
-				Activities:  result.Activities,
+				Objects:     make([]domain.DetectedObject, len(result.Objects)),
+				Landmarks:   make([]domain.Landmark, len(result.Landmarks)),
+				Activities:  make([]domain.Activity, len(result.Activities)),
 				Mood:        result.Mood,
 			}
+			for i, o := range result.Objects {
+				analytics.Objects[i] = domain.DetectedObject{Name: o}
+			}
+			for i, l := range result.Landmarks {
+				analytics.Landmarks[i] = domain.Landmark{Name: l}
+			}
+			for i, a := range result.Activities {
+				analytics.Activities[i] = domain.Activity{Name: a}
+			}
+
 			if err := fc.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
 				// 保存失敗はログ出力のみで続行
 				logger.Warn(ctx, fmt.Sprintf("failed to save media analytics for file %s: %v", result.FileID, err))

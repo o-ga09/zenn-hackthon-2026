@@ -26,20 +26,24 @@ type IAgentServer interface {
 }
 
 type AgentServer struct {
-	storage    domain.IImageStorage
-	agent      agent.IAgent
-	vlogRepo   domain.IVLogRepository
-	mediaRepo  domain.IMediaRepository
-	taskClient queue.IQueue
+	storage            domain.IImageStorage
+	agent              agent.IAgent
+	vlogRepo           domain.IVLogRepository
+	mediaRepo          domain.IMediaRepository
+	mediaAnalyticsRepo domain.IMediaAnalyticsRepository
+	taskClient         queue.IQueue
+	txManager          domain.ITransactionManager
 }
 
-func NewAgentServer(ctx context.Context, storage domain.IImageStorage, agentInstance agent.IAgent, vlogRepo domain.IVLogRepository, mediaRepo domain.IMediaRepository, taskClient queue.IQueue) *AgentServer {
+func NewAgentServer(ctx context.Context, storage domain.IImageStorage, agentInstance agent.IAgent, vlogRepo domain.IVLogRepository, mediaRepo domain.IMediaRepository, mediaAnalyticsRepo domain.IMediaAnalyticsRepository, taskClient queue.IQueue, txManager domain.ITransactionManager) *AgentServer {
 	return &AgentServer{
-		storage:    storage,
-		agent:      agentInstance,
-		vlogRepo:   vlogRepo,
-		mediaRepo:  mediaRepo,
-		taskClient: taskClient,
+		storage:            storage,
+		agent:              agentInstance,
+		vlogRepo:           vlogRepo,
+		mediaRepo:          mediaRepo,
+		mediaAnalyticsRepo: mediaAnalyticsRepo,
+		taskClient:         taskClient,
+		txManager:          txManager,
 	}
 }
 
@@ -184,9 +188,14 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 	_ = s.vlogRepo.Update(ctx, vlogRef)
 
 	// VLog生成を実行
-	res, err := s.agent.CreateVlogWithProgress(ctx, task.Data, func(p agent.FlowProgress) {
-		// 進捗をDBに更新
-		_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", p.Progress)
+	var res *agent.VlogOutput
+	err = s.txManager.Do(ctx, func(ctx context.Context) error {
+		var err error
+		res, err = s.agent.CreateVlogWithProgress(ctx, task.Data, func(p agent.FlowProgress) {
+			// 進捗をDBに更新
+			_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", p.Progress)
+		})
+		return err
 	})
 
 	if err != nil {
@@ -401,7 +410,12 @@ func (s *AgentServer) AnalyzeMedia(c echo.Context) error {
 	}
 
 	// 分析を実行
-	res, err := s.agent.AnalyzeMediaBatch(ctx, input)
+	var res *agent.MediaAnalysisBatchOutput
+	err = s.txManager.Do(ctx, func(ctx context.Context) error {
+		var err error
+		res, err = s.agent.AnalyzeMediaBatch(ctx, input)
+		return err
+	})
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}

@@ -18,7 +18,12 @@ func (r *MediaAnalyticsRepository) Save(ctx context.Context, analytics *domain.M
 
 func (r *MediaAnalyticsRepository) FindByFileID(ctx context.Context, fileID string) (*domain.MediaAnalytics, error) {
 	var analytics domain.MediaAnalytics
-	if err := Ctx.GetDB(ctx).Where("file_id = ?", fileID).First(&analytics).Error; err != nil {
+	if err := Ctx.GetDB(ctx).
+		Preload("Objects").
+		Preload("Landmarks").
+		Preload("Activities").
+		Where("file_id = ?", fileID).
+		First(&analytics).Error; err != nil {
 		return nil, err
 	}
 	return &analytics, nil

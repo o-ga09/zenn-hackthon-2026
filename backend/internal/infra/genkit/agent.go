@@ -213,13 +213,24 @@ func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.Media
 			analytics := &domain.MediaAnalytics{
 				FileID:      output.FileID,
 				Description: output.Description,
-				Objects:     output.Objects,
-				Landmarks:   output.Landmarks,
-				Activities:  output.Activities,
+				Objects:     make([]domain.DetectedObject, len(output.Objects)),
+				Landmarks:   make([]domain.Landmark, len(output.Landmarks)),
+				Activities:  make([]domain.Activity, len(output.Activities)),
 				Mood:        output.Mood,
 			}
+			for i, o := range output.Objects {
+				analytics.Objects[i] = domain.DetectedObject{Name: o}
+			}
+			for i, l := range output.Landmarks {
+				analytics.Landmarks[i] = domain.Landmark{Name: l}
+			}
+			for i, a := range output.Activities {
+				analytics.Activities[i] = domain.Activity{Name: a}
+			}
+
 			if err := ga.flowContext.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
 				logger.Warn(ctx, fmt.Sprintf("failed to save media analytics for file %s: %v", output.FileID, err))
+				return nil, err
 			}
 		}
 
