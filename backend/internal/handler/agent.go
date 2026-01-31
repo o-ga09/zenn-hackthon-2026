@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/queue"
+	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
@@ -19,27 +22,37 @@ import (
 type IAgentServer interface {
 	CreateVLog(echo.Context) error
 	AnalyzeMedia(echo.Context) error
+	ProcessVLogTask(echo.Context) error
 }
 
 type AgentServer struct {
-	storage domain.IImageStorage
-	agent   agent.IAgent
+	storage    domain.IImageStorage
+	agent      agent.IAgent
+	vlogRepo   domain.IVLogRepository
+	taskClient queue.IQueue
 }
 
-func NewAgentServer(ctx context.Context, storage domain.IImageStorage, agentInstance agent.IAgent) *AgentServer {
+func NewAgentServer(ctx context.Context, storage domain.IImageStorage, agentInstance agent.IAgent, vlogRepo domain.IVLogRepository, taskClient queue.IQueue) *AgentServer {
 	return &AgentServer{
-		storage: storage,
-		agent:   agentInstance,
+		storage:    storage,
+		agent:      agentInstance,
+		vlogRepo:   vlogRepo,
+		taskClient: taskClient,
 	}
 }
 
-// CreateVLogRequest はVLog生成APIのリクエスト（JSON形式の場合）
 type CreateVLogRequest struct {
 	MediaItems  []agent.MediaItem `json:"mediaItems" validate:"required,min=1"`
 	Title       string            `json:"title,omitempty"`
 	TravelDate  string            `json:"travelDate,omitempty"`
 	Destination string            `json:"destination,omitempty"`
 	Style       agent.VlogStyle   `json:"style,omitempty"`
+}
+
+// CreateVLogResponse はVLog生成APIのレスポンス
+type CreateVLogResponse struct {
+	VlogID string `json:"vlogId"`
+	Status string `json:"status"`
 }
 
 // CreateVLog はメディアからVLogを生成する
@@ -57,13 +70,11 @@ type CreateVLogRequest struct {
 //   - transition: トランジション効果（fade/slide/zoom、任意）
 func (s *AgentServer) CreateVLog(c echo.Context) error {
 	ctx := c.Request().Context()
-
 	// ユーザーIDをコンテキストから取得
-	userID := c.Get("userID")
-	if userID == nil {
-		userID = "anonymous"
+	userIDStr := Ctx.GetCtxFromUser(ctx)
+	if userIDStr == "" {
+		userIDStr = "anonymous"
 	}
-	userIDStr := userID.(string)
 
 	// マルチパートフォームをパース
 	form, err := c.MultipartForm()
@@ -118,13 +129,86 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 		Style:       style,
 	}
 
-	// VLog生成を実行
-	res, err := s.agent.CreateVlog(ctx, input)
-	if err != nil {
+	// VLogレコードをPENDINGステータスで作成
+	vlogID, _ := ulid.GenerateULID()
+	vlog := &domain.Vlog{
+		BaseModel: domain.BaseModel{
+			ID: vlogID,
+		},
+		Status: domain.VlogStatusPending,
+	}
+	if err := s.vlogRepo.Create(ctx, vlog); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
-	return c.JSON(http.StatusOK, res)
+	// Cloud Tasksにタスクを登録
+	payload := &queue.Task{
+		ID:     vlogID,
+		Type:   "ProcessVLogTask",
+		Data:   input,
+		Status: "pending",
+	}
+	if err := s.taskClient.Enqueue(ctx, payload); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.JSON(http.StatusAccepted, CreateVLogResponse{
+		VlogID: vlogID,
+		Status: string(domain.VlogStatusProcessing),
+	})
+}
+
+// ProcessVLogTask はCloud Tasksからのリクエストを受け取り、VLog生成を非同期に実行する
+// POST /internal/tasks/create-vlog
+func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var task queue.Task
+	if err := c.Bind(&task); err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	// ステータスをPROCESSINGに更新
+	now := time.Now()
+	if err := s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", 0.1); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	vlogRef, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: task.ID}})
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	vlogRef.StartedAt = &now
+	_ = s.vlogRepo.Update(ctx, vlogRef)
+
+	// VLog生成を実行
+	res, err := s.agent.CreateVlogWithProgress(ctx, task.Data, func(p agent.FlowProgress) {
+		// 進捗をDBに更新
+		_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", p.Progress)
+	})
+
+	if err != nil {
+		// 失敗ステータスに更新
+		_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusFailed, err.Error(), 0)
+		return errors.Wrap(ctx, err)
+	}
+
+	// 成功ステータスと生成された情報を更新
+	vlogRef.VideoID = res.VideoID
+	vlogRef.VideoURL = res.VideoURL
+	vlogRef.ShareURL = res.ShareURL
+	vlogRef.Duration = res.Duration
+	vlogRef.Thumbnail = res.ThumbnailURL
+	vlogRef.Status = domain.VlogStatusCompleted
+	vlogRef.Progress = 1.0
+	completedAt := time.Now()
+	vlogRef.CompletedAt = &completedAt
+
+	if err := s.vlogRepo.Update(ctx, vlogRef); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 // uploadMediaFiles はマルチパートファイルをストレージにアップロードしてMediaItemsを返す

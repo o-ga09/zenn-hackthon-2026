@@ -8,45 +8,57 @@ type VLogListResponse struct {
 }
 
 type VLogItem struct {
-	ID        string  `json:"id"`
-	VideoID   string  `json:"video_id"`
-	VideoURL  string  `json:"video_url"`
-	ShareURL  string  `json:"share_url"`
-	Duration  float64 `json:"duration"`
-	Thumbnail string  `json:"thumbnail"`
-	CreatedAt string  `json:"created_at"`
+	ID           string  `json:"id"`
+	VideoID      string  `json:"video_id"`
+	VideoURL     string  `json:"video_url"`
+	ShareURL     string  `json:"share_url"`
+	Duration     float64 `json:"duration"`
+	Thumbnail    string  `json:"thumbnail"`
+	Status       string  `json:"status"`
+	ErrorMessage string  `json:"error_message,omitempty"`
+	Progress     float64 `json:"progress"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 type VLogGetByIDResponse struct {
-	ID        string  `json:"id"`
-	VideoID   string  `json:"video_id"`
-	VideoURL  string  `json:"video_url"`
-	ShareURL  string  `json:"share_url"`
-	Duration  float64 `json:"duration"`
-	Thumbnail string  `json:"thumbnail"`
-	CreatedAt string  `json:"created_at"`
+	ID           string  `json:"id"`
+	VideoID      string  `json:"video_id"`
+	VideoURL     string  `json:"video_url"`
+	ShareURL     string  `json:"share_url"`
+	Duration     float64 `json:"duration"`
+	Thumbnail    string  `json:"thumbnail"`
+	Status       string  `json:"status"`
+	ErrorMessage string  `json:"error_message,omitempty"`
+	Progress     float64 `json:"progress"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 func ToVLogItem(vlog *domain.Vlog) VLogItem {
 	return VLogItem{
-		ID:        vlog.ID,
-		VideoID:   vlog.VideoID,
-		ShareURL:  vlog.ShareURL,
-		Duration:  vlog.Duration,
-		VideoURL:  vlog.VideoURL,
-		Thumbnail: vlog.Thumbnail,
-		CreatedAt: vlog.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           vlog.ID,
+		VideoID:      vlog.VideoID,
+		ShareURL:     vlog.ShareURL,
+		Duration:     vlog.Duration,
+		VideoURL:     vlog.VideoURL,
+		Thumbnail:    vlog.Thumbnail,
+		Status:       string(vlog.Status),
+		ErrorMessage: vlog.ErrorMessage,
+		Progress:     vlog.Progress,
+		CreatedAt:    vlog.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 
 func ToVLogGetByIDResponse(vlog *domain.Vlog) VLogGetByIDResponse {
 	return VLogGetByIDResponse{
-		ID:        vlog.ID,
-		VideoID:   vlog.VideoID,
-		ShareURL:  vlog.ShareURL,
-		Duration:  vlog.Duration,
-		VideoURL:  vlog.VideoURL,
-		Thumbnail: vlog.Thumbnail,
-		CreatedAt: vlog.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           vlog.ID,
+		VideoID:      vlog.VideoID,
+		ShareURL:     vlog.ShareURL,
+		Duration:     vlog.Duration,
+		VideoURL:     vlog.VideoURL,
+		Thumbnail:    vlog.Thumbnail,
+		Status:       string(vlog.Status),
+		ErrorMessage: vlog.ErrorMessage,
+		Progress:     vlog.Progress,
+		CreatedAt:    vlog.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

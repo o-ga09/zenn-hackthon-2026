@@ -32,9 +32,10 @@ func (s *Server) SetupApplicationRoute() {
 	// VLog管理API
 	vlogs := apiRoot.Group("/vlogs", AuthMiddleware())
 	{
-		vlogs.GET("", s.VLog.List)          // VLog一覧取得
-		vlogs.GET("/:id", s.VLog.GetByID)   // IDでVLog取得
-		vlogs.DELETE("/:id", s.VLog.Delete) // VLog削除
+		vlogs.GET("", s.VLog.List)                    // VLog一覧取得
+		vlogs.GET("/:id", s.VLog.GetByID)             // IDでVLog取得
+		vlogs.GET("/:id/stream", s.VLog.StreamStatus) // VLog進捗ストリーミング
+		vlogs.DELETE("/:id", s.VLog.Delete)           // VLog削除
 	}
 
 	// AIエージェントAPI
@@ -42,5 +43,10 @@ func (s *Server) SetupApplicationRoute() {
 	{
 		agentGroup.POST("/create-vlog", s.Agent.CreateVLog)     // VLog作成
 		agentGroup.POST("/analyze-media", s.Agent.AnalyzeMedia) // メディア分析
+	}
+	// 内部タスクAPI（Cloud Tasksからの呼び出し用、自動でIAM認証される）
+	internal := s.Engine.Group("/internal")
+	{
+		internal.POST("/tasks/create-vlog", s.Agent.ProcessVLogTask)
 	}
 }

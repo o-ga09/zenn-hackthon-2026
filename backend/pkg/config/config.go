@@ -38,6 +38,9 @@ type Config struct {
 	BASE_URL                  string `env:"BASE_URL" envDefault:"http://localhost:3000"`
 	GCS_TEMP_BUCKET           string `env:"GCS_TEMP_BUCKET" envDefault:"tavinikkiy-temp"`
 	GCS_LOCATION              string `env:"GCS_LOCATION" envDefault:"us-central1"`
+	CLOUD_TASKS_QUEUE_NAME    string `env:"CLOUD_TASKS_QUEUE_NAME" envDefault:"vlog-processing-queue"`
+	CLOUD_TASKS_LOCATION      string `env:"CLOUD_TASKS_LOCATION" envDefault:"us-central1"`
+	SERVICE_ACCOUNT_EMAIL     string `env:"SERVICE_ACCOUNT_EMAIL" envDefault:""`
 }
 
 func New(ctx context.Context) (context.Context, error) {

@@ -3,6 +3,7 @@ module github.com/o-ga09/zenn-hackthon-2026
 go 1.25.5
 
 require (
+	cloud.google.com/go/cloudtasks v1.13.6
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/storage v1.59.1
 	firebase.google.com/go/v4 v4.18.0

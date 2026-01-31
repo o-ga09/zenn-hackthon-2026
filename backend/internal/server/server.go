@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler"
+	cloudtask "github.com/o-ga09/zenn-hackthon-2026/internal/infra/cloudTask"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/genkit"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
@@ -56,6 +57,12 @@ func New(ctx context.Context) *Server {
 		// GenAIクライアント初期化失敗は警告のみ（Veo機能が使えなくなる）
 	}
 
+	// Cloud Tasks クライアントの初期化
+	taskClient, err := cloudtask.NewClient(ctx)
+	if err != nil {
+		log.Printf("warning: failed to initialize cloud tasks client: %v", err)
+	}
+
 	// GenkitAgent の初期化（依存性注入）
 	genkitAgent := genkit.NewGenkitAgent(ctx,
 		genkit.WithAgentStorage(r2Storage),
@@ -63,7 +70,8 @@ func New(ctx context.Context) *Server {
 		genkit.WithAgentGenAIClient(genaiClient),
 		genkit.WithBaseURL(env.BASE_URL),
 	)
-	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent)
+	vlogRepo := &mysql.VLogRepository{}
+	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, taskClient)
 
 	// Echoインスタンス作成
 	e := echo.New()

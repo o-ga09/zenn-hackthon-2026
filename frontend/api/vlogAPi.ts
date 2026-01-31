@@ -11,6 +11,9 @@ export interface Vlog {
   share_url: string
   duration: number
   thumbnail: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  error_message?: string
+  progress: number
   created_at: string
   updated_at: string
 }
@@ -63,10 +66,77 @@ export const useDeleteVlog = (vlogId?: string) => {
       if (vlogId) {
         queryClient.removeQueries({ queryKey: VLOG_QUERY_KEY(vlogId) })
       }
-      queryClient.invalidateQueries({ queryKey: VLOGS_QUERY_KEY })
-    },
-    onError: error => {
-      console.error('VLog削除エラー:', error)
-    },
+	  queryClient.invalidateQueries({ queryKey: VLOGS_QUERY_KEY })
+	},
+	onError: error => {
+	  console.error('VLog削除エラー:', error)
+	},
   })
+}
+
+/** 
+ * VLog作成の進捗をSSEで監視するフック
+ * 接続が切れた場合は自動的にポーリングにフォールバックする
+ */
+import { useEffect, useState } from 'react'
+
+export const useVlogSSE = (vlogId: string | null) => {
+  const [status, setStatus] = useState<Vlog | null>(null)
+  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!vlogId) return
+
+    let pollInterval: NodeJS.Timeout | null = null
+
+    const startPolling = () => {
+      if (pollInterval) return
+      console.log('Falling back to polling for vlog:', vlogId)
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await apiClient.get(`/vlogs/${vlogId}`)
+          const data = res.data as Vlog
+          setStatus(data)
+          if (data.status === 'completed' || data.status === 'failed') {
+            if (pollInterval) clearInterval(pollInterval)
+            queryClient.invalidateQueries({ queryKey: VLOGS_QUERY_KEY })
+          }
+        } catch (err) {
+          console.error('Polling error:', err)
+          if (pollInterval) clearInterval(pollInterval)
+        }
+      }, 3000)
+    }
+
+    const sseUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/vlogs/${vlogId}/stream`
+    const eventSource = new EventSource(sseUrl, { withCredentials: true })
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as Vlog
+        setStatus(data)
+        if (data.status === 'completed' || data.status === 'failed') {
+          eventSource.close()
+          queryClient.invalidateQueries({ queryKey: VLOGS_QUERY_KEY })
+        }
+      } catch (err) {
+        console.error('Failed to parse SSE message:', err)
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error('SSE connection error:', err)
+      eventSource.close()
+      // SSEが失敗したらポーリングに切り替え
+      startPolling()
+    }
+
+    return () => {
+      eventSource.close()
+      if (pollInterval) clearInterval(pollInterval)
+    }
+  }, [vlogId, queryClient])
+
+  return { status, error }
 }

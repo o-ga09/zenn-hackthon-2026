@@ -7,6 +7,7 @@ import { TravelFormValues, UploadStep, travelFormSchema } from './form-schema'
 import { useRouter } from 'next/navigation'
 import { useCreateTravel } from '@/api/travelApi'
 import { useAuth } from '@/context/authContext'
+import { apiClient } from '@/api/client'
 
 interface UploadFormContextProps {
   step: UploadStep
@@ -19,6 +20,7 @@ interface UploadFormContextProps {
   uploadedFiles: File[]
   isGenerating: boolean
   generationError: string | null
+  vlogId: string | null
 }
 
 const UploadFormContext = createContext<UploadFormContextProps | undefined>(undefined)
@@ -43,6 +45,7 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
+  const [vlogId, setVlogId] = useState<string | null>(null)
 
   const { mutateAsync: createTravel } = useCreateTravel()
 
@@ -89,49 +92,44 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
       setGenerationError(null)
 
       // フォームデータの取得
-      const formData = methods.getValues()
+      const formDataValues = methods.getValues()
 
       // ユーザーが認証されているか確認
       if (!user || !user.id) {
         throw new Error('ユーザーが認証されていません。再度ログインしてください。')
       }
 
-      // 現在の日時を文字列で取得（一意のIDとして使用）
-      const currentTimeStr = new Date().toISOString()
-
-      // サムネイル画像のURLまたはデータURIを生成（仮の実装）
-      // 実際の実装では、アップロードした写真の1枚目をサムネイルとして使用するか
-      // プレースホルダー画像を使用する
-      const thumbnailUrl = '/placeholder.webp' // 仮のプレースホルダー画像パス
-      console.log('サムネイルURL:', user.id)
-
-      // 1. 旅行情報を保存
+      // 1. 旅行情報を保存 (将来的にVLog生成と統合する可能性があるが、現状維持)
       await createTravel({
         userId: user.id,
-        title: formData.travelTitle,
-        description: formData.travelDescription || '',
-        startDate: formData.travelDate,
-        endDate: formData.travelDate,
-        sharedId: `share_${currentTimeStr}`,
-        thumbnail: thumbnailUrl,
+        title: formDataValues.travelTitle,
+        description: formDataValues.travelDescription || '',
+        startDate: formDataValues.travelDate,
+        endDate: formDataValues.travelDate,
+        sharedId: `share_${new Date().getTime()}`,
+        thumbnail: '/placeholder.webp',
       })
 
-      // 2. 写真ファイルをアップロード
-      // 実際のAPIが実装されたら、以下のように写真をアップロードし、処理をリクエストするコードを追加
-      // const formDataForUpload = new FormData()
-      // formDataForUpload.append('travel_id', travelData.id)
-      //
-      // uploadedFiles.forEach((file, index) => {
-      //   formDataForUpload.append(`photos[${index}]`, file)
-      // })
-      //
-      // await apiClient.post('/videos/generate', formDataForUpload)
+      // 2. VLog作成APIを呼び出し
+      const formData = new FormData()
+      uploadedFiles.forEach(file => {
+        formData.append('files', file)
+      })
+      formData.append('title', formDataValues.travelTitle)
+      formData.append('travelDate', formDataValues.travelDate)
+      formData.append('destination', formDataValues.travelLocation || '')
+      formData.append('theme', 'adventure') // デフォルト
 
-      // モックAPI呼び出し - 実際のAPIが実装されたらここを置き換える
-      await new Promise(resolve => setTimeout(resolve, 2000)) // 2秒待機してAPIリクエストをシミュレート
+      const res = await apiClient.post('/agent/create-vlog', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
 
-      // 成功した場合、動画ページへリダイレクト
-      router.push('/videos')
+      setVlogId(res.data.vlogId)
+      
+      // 生成プロセスが開始されたので、進捗表示フェーズへ（実装が必要）
+      // ここではひとまず生成中フラグを維持し、SSEによる進捗監視に移行する準備をする
     } catch (error) {
       // エラーハンドリング
       console.error('動画生成中にエラーが発生しました', error)
@@ -140,7 +138,6 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
           ? error.message
           : '動画生成中にエラーが発生しました。もう一度お試しください。'
       setGenerationError(errorMessage)
-    } finally {
       setIsGenerating(false)
     }
   }
@@ -173,6 +170,7 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
     uploadedFiles,
     isGenerating,
     generationError,
+    vlogId,
   }
 
   return (
