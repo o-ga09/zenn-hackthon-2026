@@ -12,6 +12,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
 // GenkitAgent はGenkit AIエージェントの実装
@@ -186,6 +187,7 @@ func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.Media
 	for _, item := range input.Items {
 		outputRaw, err := ga.tools.AnalyzeMedia.RunRaw(ctx, item)
 		if err != nil {
+			logger.Warn(ctx, fmt.Sprintf("FileID: %s, URL: %s", item.FileID, item.URL), "error", err.Error())
 			failedItems++
 			continue
 		}

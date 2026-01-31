@@ -34,7 +34,6 @@ type Config struct {
 	CLOUDFLARE_R2_BUCKET_NAME string `env:"CLOUDFLARE_R2_BUCKET_NAME" envDefault:"tavinikkiy-local"`
 	CLOUDFLARE_R2_PUBLIC_URL  string `env:"CLOUDFLARE_R2_PUBLIC_URL" envDefault:"http://localhost:4566"`
 	COOKIE_DOMAIN             string `env:"COOKIE_DOMAIN" envDefault:"localhost"`
-	GOOGLE_API_KEY            string `env:"GOOGLE_API_KEY" envDefault:""`
 	BASE_URL                  string `env:"BASE_URL" envDefault:"http://localhost:3000"`
 	GCS_TEMP_BUCKET           string `env:"GCS_TEMP_BUCKET" envDefault:"tavinikkiy-temp"`
 	GCS_LOCATION              string `env:"GCS_LOCATION" envDefault:"us-central1"`
@@ -92,18 +91,11 @@ func GetCtxEnv(ctx context.Context) *Config {
 }
 
 func InitGenAI(ctx context.Context) context.Context {
-	// Initialize Genkit with the Google AI plugin
+	cfg := GetCtxEnv(ctx)
+	// Initialize Genkit with the Vertex AI plugin
 	g := genkit.Init(ctx,
-		genkit.WithPlugins(&googlegenai.GoogleAI{}),
-		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
-	)
-	return context.WithValue(ctx, CtxGenAIKey, g)
-}
-
-func InitVertexAI(ctx context.Context) context.Context {
-	g := genkit.Init(ctx,
-		genkit.WithPlugins(&googlegenai.VertexAI{ProjectID: "tavinikkiy", Location: "us-central1"}),
-		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
+		genkit.WithPlugins(&googlegenai.VertexAI{ProjectID: cfg.ProjectID, Location: cfg.GCS_LOCATION}),
+		genkit.WithDefaultModel("vertexai/gemini-1.5-flash"),
 	)
 	return context.WithValue(ctx, CtxGenAIKey, g)
 }

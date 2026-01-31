@@ -44,7 +44,7 @@ type FlowConfig struct {
 // DefaultFlowConfig はデフォルトのFlowConfigを返す
 func DefaultFlowConfig() *FlowConfig {
 	return &FlowConfig{
-		DefaultModel:         "googleai/gemini-2.5-flash",
+		DefaultModel:         "vertexai/gemini-1.5-flash",
 		MaxMediaItems:        50,
 		DefaultVideoDuration: 8, // Veoは8秒が標準
 		ThumbnailWidth:       1280,

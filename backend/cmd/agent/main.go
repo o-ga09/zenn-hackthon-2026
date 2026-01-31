@@ -21,7 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx = config.InitVertexAI(ctx)
+	ctx = config.InitGenAI(ctx)
 
 	g := config.GetGenkitCtx(ctx)
 
