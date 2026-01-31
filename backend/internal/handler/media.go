@@ -56,7 +56,6 @@ func (s *ImageServer) List(c echo.Context) error {
 	for _, media := range medias {
 		mediaResponses = append(mediaResponses, &response.MediaListItem{
 			ID:          media.ID,
-			Type:        media.Type,
 			ContentType: media.ContentType,
 			Size:        media.Size,
 			URL:         fmt.Sprintf("%s/%s/%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL),
@@ -112,17 +111,6 @@ func (s *ImageServer) Upload(c echo.Context) error {
 		contentType = "video/x-matroska"
 	}
 
-	// ファイル形式を判定
-	var fileType string
-	switch {
-	case strings.HasPrefix(contentType, "image/"):
-		fileType = "image"
-	case strings.HasPrefix(contentType, "video/"):
-		fileType = "video"
-	default:
-		return errors.Wrap(ctx, fmt.Errorf("対応していないファイル形式: %s", contentType))
-	}
-
 	// ユーザーIDとファイルIDを取得
 	userID := context.GetCtxFromUser(ctx)
 	fileID := ulid.New()
@@ -142,7 +130,6 @@ func (s *ImageServer) Upload(c echo.Context) error {
 			ID:           fileID,
 			CreateUserID: &userID,
 		},
-		Type:        fileType,
 		ContentType: contentType,
 		Size:        file.Size,
 		URL:         storageURL,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/firebase/genkit/go/ai"
@@ -213,13 +212,11 @@ func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.Media
 		if ga.flowContext.MediaAnalyticsRepo != nil {
 			analytics := &domain.MediaAnalytics{
 				FileID:      output.FileID,
-				Type:        output.Type,
 				Description: output.Description,
 				Objects:     output.Objects,
 				Landmarks:   output.Landmarks,
 				Activities:  output.Activities,
 				Mood:        output.Mood,
-				Timestamp:   time.Now(),
 			}
 			if err := ga.flowContext.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
 				logger.Warn(ctx, fmt.Sprintf("failed to save media analytics for file %s: %v", output.FileID, err))

@@ -3,7 +3,6 @@ package genkit
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
@@ -138,13 +137,11 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 		if fc != nil && fc.MediaAnalyticsRepo != nil {
 			analytics := &domain.MediaAnalytics{
 				FileID:      result.FileID,
-				Type:        result.Type,
 				Description: result.Description,
 				Objects:     result.Objects,
 				Landmarks:   result.Landmarks,
 				Activities:  result.Activities,
 				Mood:        result.Mood,
-				Timestamp:   time.Now(),
 			}
 			if err := fc.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
 				// 保存失敗はログ出力のみで続行

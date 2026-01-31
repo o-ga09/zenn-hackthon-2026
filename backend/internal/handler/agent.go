@@ -231,12 +231,6 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 			return nil, fmt.Errorf("failed to read file %s: %w", fileHeader.Filename, err)
 		}
 
-		// ファイルIDを生成
-		fileID, err := ulid.GenerateULID()
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate file ID: %w", err)
-		}
-
 		// コンテンツタイプを取得
 		contentType := fileHeader.Header.Get("Content-Type")
 		if contentType == "" {
@@ -251,32 +245,31 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 		if ext == "" {
 			ext = getExtensionFromContentType(contentType)
 		}
-		key := fmt.Sprintf("users/%s/uploads/%s%s", userID, fileID, ext)
-
-		// ストレージにアップロード
-		url, err := s.storage.UploadFile(ctx, key, data, contentType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
-		}
+		key := fmt.Sprintf("users/%s/uploads/", userID)
 
 		// MediaレコードをDBに保存
 		media := &domain.Media{
 			BaseModel: domain.BaseModel{
-				ID:           fileID,
 				CreateUserID: &userID,
 			},
-			Type:        mediaType,
 			ContentType: contentType,
 			Size:        int64(len(data)),
-			URL:         url,
+			URL:         key,
 		}
 		if err := s.mediaRepo.Save(ctx, media); err != nil {
 			return nil, fmt.Errorf("failed to save media record: %w", err)
 		}
 
+		// ストレージにアップロード
+		path := key + media.ID + ext
+		url, err := s.storage.UploadFile(ctx, path, data, contentType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
+		}
+
 		// MediaItemを作成
 		mediaItems = append(mediaItems, agent.MediaItem{
-			FileID:      fileID,
+			FileID:      media.ID,
 			URL:         url,
 			Type:        mediaType,
 			ContentType: contentType,

@@ -4,7 +4,6 @@ import "context"
 
 type Media struct {
 	BaseModel
-	Type        string `gorm:"column:type" json:"type"`                 // "image" or "video"
 	ContentType string `gorm:"column:content_type" json:"content_type"` // MIMEタイプ
 	Size        int64  `gorm:"column:size" json:"size"`                 // ファイルサイズ（バイト単位）
 	URL         string `gorm:"column:url" json:"url"`                   // ファイルのURL
