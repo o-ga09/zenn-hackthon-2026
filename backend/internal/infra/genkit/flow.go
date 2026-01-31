@@ -2,13 +2,15 @@ package genkit
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
 // ============================================================
@@ -108,6 +110,7 @@ func validateVlogInput(input *agent.VlogInput, config *FlowConfig) error {
 
 // analyzeAllMedia は全メディアを分析する
 func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredTools *RegisteredTools) ([]agent.MediaAnalysisOutput, error) {
+	fc := GetFlowContext(ctx)
 	results := make([]agent.MediaAnalysisOutput, 0, len(items))
 	var allErrors []error
 
@@ -130,6 +133,24 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 			continue
 		}
 		results = append(results, result)
+
+		// DBに保存
+		if fc != nil && fc.MediaAnalyticsRepo != nil {
+			analytics := &domain.MediaAnalytics{
+				FileID:      result.FileID,
+				Type:        result.Type,
+				Description: result.Description,
+				Objects:     result.Objects,
+				Landmarks:   result.Landmarks,
+				Activities:  result.Activities,
+				Mood:        result.Mood,
+				Timestamp:   time.Now(),
+			}
+			if err := fc.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
+				// 保存失敗はログ出力のみで続行
+				logger.Warn(ctx, fmt.Sprintf("failed to save media analytics for file %s: %v", result.FileID, err))
+			}
+		}
 	}
 
 	if len(results) == 0 {
@@ -213,25 +234,4 @@ func buildAnalyticsSummary(results []agent.MediaAnalysisOutput, mediaCount int) 
 	}
 }
 
-// TODO: refactor
-// convertToStruct はinterface{}（通常はmap[string]interface{}）を指定した構造体に変換する
-func convertToStruct[T any](raw interface{}) (T, error) {
-	var result T
-
-	// すでに目的の型の場合はそのまま返す
-	if typed, ok := raw.(T); ok {
-		return typed, nil
-	}
-
-	// JSONを経由して変換
-	jsonBytes, err := json.Marshal(raw)
-	if err != nil {
-		return result, fmt.Errorf("failed to marshal to JSON: %w", err)
-	}
-
-	if err := json.Unmarshal(jsonBytes, &result); err != nil {
-		return result, fmt.Errorf("failed to unmarshal from JSON: %w", err)
-	}
-
-	return result, nil
-}
+// TODO: refactor は internal/infra/genkit/agent.go の convertToStruct を共通利用

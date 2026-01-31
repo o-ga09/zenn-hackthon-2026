@@ -108,7 +108,7 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 	// オペレーション全体をデバッグ出力
 	fmt.Printf("[Veo] Operation Name: %s\n", op.Name)
 	if op.Error != nil {
-		return nil, fmt.Errorf("veo operation error: error=%d", op.Error)
+		return nil, fmt.Errorf("veo operation error: error=%v", op.Error)
 	}
 
 	// エラーチェック

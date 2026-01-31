@@ -2,7 +2,9 @@ package genkit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/firebase/genkit/go/ai"
@@ -52,6 +54,13 @@ func WithAgentStorage(storage domain.IImageStorage) GenkitAgentOption {
 func WithAgentMediaRepository(repo domain.IMediaRepository) GenkitAgentOption {
 	return func(ga *GenkitAgent) {
 		ga.flowContext.MediaRepo = repo
+	}
+}
+
+// WithAgentMediaAnalyticsRepository はMediaAnalyticsRepositoryを設定するオプション
+func WithAgentMediaAnalyticsRepository(repo domain.IMediaAnalyticsRepository) GenkitAgentOption {
+	return func(ga *GenkitAgent) {
+		ga.flowContext.MediaAnalyticsRepo = repo
 	}
 }
 
@@ -191,9 +200,31 @@ func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.Media
 			failedItems++
 			continue
 		}
-		output := outputRaw.(agent.MediaAnalysisOutput)
+		output, err := convertToStruct[agent.MediaAnalysisOutput](outputRaw)
+		if err != nil {
+			logger.Warn(ctx, fmt.Sprintf("FileID: %s, URL: %s", item.FileID, item.URL), "error", "conversion failed: "+err.Error())
+			failedItems++
+			continue
+		}
 		results = append(results, output)
 		successfulItems++
+
+		// DBに保存
+		if ga.flowContext.MediaAnalyticsRepo != nil {
+			analytics := &domain.MediaAnalytics{
+				FileID:      output.FileID,
+				Type:        output.Type,
+				Description: output.Description,
+				Objects:     output.Objects,
+				Landmarks:   output.Landmarks,
+				Activities:  output.Activities,
+				Mood:        output.Mood,
+				Timestamp:   time.Now(),
+			}
+			if err := ga.flowContext.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
+				logger.Warn(ctx, fmt.Sprintf("failed to save media analytics for file %s: %v", output.FileID, err))
+			}
+		}
 
 		for _, l := range output.Landmarks {
 			locationMap[l] = true
@@ -250,5 +281,27 @@ func GenerateWithTools[T any](ctx context.Context, ga *GenkitAgent, prompt strin
 	if err != nil {
 		return nil, err
 	}
+	return result, nil
+}
+
+// convertToStruct はinterface{}（通常はmap[string]interface{}）を指定した構造体に変換する
+func convertToStruct[T any](raw interface{}) (T, error) {
+	var result T
+
+	// すでに目的の型の場合はそのまま返す
+	if typed, ok := raw.(T); ok {
+		return typed, nil
+	}
+
+	// JSONを経由して変換
+	jsonBytes, err := json.Marshal(raw)
+	if err != nil {
+		return result, fmt.Errorf("failed to marshal to JSON: %w", err)
+	}
+
+	if err := json.Unmarshal(jsonBytes, &result); err != nil {
+		return result, fmt.Errorf("failed to unmarshal from JSON: %w", err)
+	}
+
 	return result, nil
 }

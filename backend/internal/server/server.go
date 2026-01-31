@@ -64,14 +64,17 @@ func New(ctx context.Context) *Server {
 	}
 
 	// GenkitAgent の初期化（依存性注入）
+	mediaAnalyticsRepo := &mysql.MediaAnalyticsRepository{}
 	genkitAgent := genkit.NewGenkitAgent(ctx,
 		genkit.WithAgentStorage(r2Storage),
 		genkit.WithAgentGCSClient(gcsClient),
 		genkit.WithAgentGenAIClient(genaiClient),
+		genkit.WithAgentMediaAnalyticsRepository(mediaAnalyticsRepo),
 		genkit.WithBaseURL(env.BASE_URL),
 	)
 	vlogRepo := &mysql.VLogRepository{}
-	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, taskClient)
+	mediaRepo := &mysql.MediaRepository{}
+	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, mediaRepo, taskClient)
 
 	// Echoインスタンス作成
 	e := echo.New()
@@ -98,7 +101,7 @@ func (s *Server) Run(ctx context.Context) error {
 	s.Engine.Use(SetDB())
 	s.Engine.Use(WithTimeout())
 	s.Engine.Use(CORS())
-	s.Engine.Use(middleware.BodyLimit("10M"))
+	s.Engine.Use(middleware.BodyLimit("200M"))
 	s.Engine.Use(middleware.Gzip())
 	s.Engine.Use(ErrorHandler())
 

@@ -29,14 +29,16 @@ type AgentServer struct {
 	storage    domain.IImageStorage
 	agent      agent.IAgent
 	vlogRepo   domain.IVLogRepository
+	mediaRepo  domain.IMediaRepository
 	taskClient queue.IQueue
 }
 
-func NewAgentServer(ctx context.Context, storage domain.IImageStorage, agentInstance agent.IAgent, vlogRepo domain.IVLogRepository, taskClient queue.IQueue) *AgentServer {
+func NewAgentServer(ctx context.Context, storage domain.IImageStorage, agentInstance agent.IAgent, vlogRepo domain.IVLogRepository, mediaRepo domain.IMediaRepository, taskClient queue.IQueue) *AgentServer {
 	return &AgentServer{
 		storage:    storage,
 		agent:      agentInstance,
 		vlogRepo:   vlogRepo,
+		mediaRepo:  mediaRepo,
 		taskClient: taskClient,
 	}
 }
@@ -255,6 +257,21 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 		url, err := s.storage.UploadFile(ctx, key, data, contentType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
+		}
+
+		// MediaレコードをDBに保存
+		media := &domain.Media{
+			BaseModel: domain.BaseModel{
+				ID:           fileID,
+				CreateUserID: &userID,
+			},
+			Type:        mediaType,
+			ContentType: contentType,
+			Size:        int64(len(data)),
+			URL:         url,
+		}
+		if err := s.mediaRepo.Save(ctx, media); err != nil {
+			return nil, fmt.Errorf("failed to save media record: %w", err)
 		}
 
 		// MediaItemを作成

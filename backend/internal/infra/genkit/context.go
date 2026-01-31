@@ -19,11 +19,12 @@ import (
 type FlowContext struct {
 	Genkit    *genkit.Genkit
 	Storage   domain.IImageStorage
-	GCSClient *storage.Client  // GCSクライアント（Veo一時保存用）
-	GenAI     *genai.Client    // Google Gen AIクライアント（Veo用）
-	MediaRepo domain.IMediaRepository
-	VlogRepo  domain.IVLogRepository
-	Config    *FlowConfig
+	GCSClient *storage.Client // GCSクライアント（Veo一時保存用）
+	GenAI     *genai.Client   // Google Gen AIクライアント（Veo用）
+	MediaRepo          domain.IMediaRepository
+	MediaAnalyticsRepo domain.IMediaAnalyticsRepository
+	VlogRepo           domain.IVLogRepository
+	Config             *FlowConfig
 }
 
 // FlowConfig はFlowの設定を保持する
@@ -44,7 +45,7 @@ type FlowConfig struct {
 // DefaultFlowConfig はデフォルトのFlowConfigを返す
 func DefaultFlowConfig() *FlowConfig {
 	return &FlowConfig{
-		DefaultModel:         "vertexai/gemini-1.5-flash",
+		DefaultModel:         "vertexai/gemini-2.5-flash",
 		MaxMediaItems:        50,
 		DefaultVideoDuration: 8, // Veoは8秒が標準
 		ThumbnailWidth:       1280,
@@ -76,6 +77,13 @@ func WithStorage(storage domain.IImageStorage) FlowContextOption {
 func WithMediaRepository(repo domain.IMediaRepository) FlowContextOption {
 	return func(fc *FlowContext) {
 		fc.MediaRepo = repo
+	}
+}
+
+// WithMediaAnalyticsRepository はMediaAnalyticsRepositoryを設定するオプション
+func WithMediaAnalyticsRepository(repo domain.IMediaAnalyticsRepository) FlowContextOption {
+	return func(fc *FlowContext) {
+		fc.MediaAnalyticsRepo = repo
 	}
 }
 

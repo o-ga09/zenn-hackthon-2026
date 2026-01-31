@@ -95,7 +95,7 @@ func InitGenAI(ctx context.Context) context.Context {
 	// Initialize Genkit with the Vertex AI plugin
 	g := genkit.Init(ctx,
 		genkit.WithPlugins(&googlegenai.VertexAI{ProjectID: cfg.ProjectID, Location: cfg.GCS_LOCATION}),
-		genkit.WithDefaultModel("vertexai/gemini-1.5-flash"),
+		genkit.WithDefaultModel("vertexai/gemini-2.5-flash"),
 	)
 	return context.WithValue(ctx, CtxGenAIKey, g)
 }

@@ -138,6 +138,10 @@ func (s *ImageServer) Upload(c echo.Context) error {
 
 	// データベースにメタデータを保存
 	model := &domain.Media{
+		BaseModel: domain.BaseModel{
+			ID:           fileID,
+			CreateUserID: &userID,
+		},
 		Type:        fileType,
 		ContentType: contentType,
 		Size:        file.Size,
