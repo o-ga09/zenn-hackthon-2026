@@ -11,7 +11,7 @@ import GenerationProgress from './GenerationProgress'
 
 export default function VideoGenerationConfirm() {
   const { getValues } = useFormContext<TravelFormValues>()
-  const { handleGenerateVideo, uploadedFiles, isGenerating, generationError, vlogId } = useUploadForm()
+  const { handleGenerateVideo, uploadedFiles, selectedMediaIds, isGenerating, generationError, vlogId } = useUploadForm()
   const [formValues, setFormValues] = useState({
     travelTitle: '',
     travelDate: '',
@@ -28,7 +28,7 @@ export default function VideoGenerationConfirm() {
       travelLocation: values.travelLocation || '指定なし',
       travelDescription: values.travelDescription || '指定なし',
     })
-  }, [getValues, uploadedFiles]) // uploadedFilesが変更された時も再取得
+  }, [getValues, uploadedFiles, selectedMediaIds]) // uploadedFilesまたはselectedMediaIdsが変更された時も再取得
 
   if (vlogId) {
     return <GenerationProgress vlogId={vlogId} />
@@ -39,9 +39,10 @@ export default function VideoGenerationConfirm() {
       <div className="bg-muted p-3 md:p-4 rounded-lg">
         <h3 className="font-semibold mb-2 text-sm md:text-base">確認事項</h3>
         <ul className="list-disc list-inside space-y-1 md:space-y-2 text-xs md:text-sm">
-          <li>アップロードした写真: {uploadedFiles.length}枚</li>
-          <li>旅行タイトル: {formValues.travelTitle}</li>
-          <li>旅行日: {formValues.travelDate}</li>
+          <li>新規アップロード: {uploadedFiles.length}枚</li>
+          <li>ライブラリから選択: {selectedMediaIds.length}枚</li>
+          <li>旅行タイトル: {formValues.travelTitle || 'AIにお任せ'}</li>
+          <li>旅行日: {formValues.travelDate || 'AIにお任せ'}</li>
           <li>場所: {formValues.travelLocation}</li>
           <li>
             説明: {formValues.travelDescription.substring(0, 30)}
@@ -62,7 +63,7 @@ export default function VideoGenerationConfirm() {
             動画生成の準備完了！
           </h3>
           <p className="opacity-90 text-xs md:text-sm lg:text-base">
-            AIが{uploadedFiles.length}枚の写真から素敵な動画を作成します
+            AIが{uploadedFiles.length + selectedMediaIds.length}枚の素材から素敵な動画を作成します
           </p>
         </div>
         <Button
@@ -71,9 +72,7 @@ export default function VideoGenerationConfirm() {
           className="bg-white text-primary hover:bg-white/90 text-sm md:text-lg px-4 md:px-8 py-3 md:py-6 w-full"
           onClick={handleGenerateVideo}
           disabled={
-            uploadedFiles.length === 0 ||
-            !formValues.travelTitle ||
-            !formValues.travelDate ||
+            (uploadedFiles.length === 0 && selectedMediaIds.length === 0) ||
             isGenerating
           }
         >

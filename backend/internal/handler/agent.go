@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -14,6 +15,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/queue"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
@@ -92,18 +94,49 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 
 	// ファイルを取得
 	files := form.File["files"]
-	if len(files) == 0 {
+
+	// 既存メディアIDを取得
+	var selectedMediaIds []string
+	if mediaIdsStr := c.FormValue("mediaIds"); mediaIdsStr != "" {
+		if err := json.Unmarshal([]byte(mediaIdsStr), &selectedMediaIds); err != nil {
+			// fallback to comma separated if not JSON
+			selectedMediaIds = strings.Split(mediaIdsStr, ",")
+		}
+	}
+
+	if len(files) == 0 && len(selectedMediaIds) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "No files uploaded. Please upload at least one media file.",
+			"error": "No files uploaded and no media IDs provided. Please provide at least one source.",
 		})
 	}
 
-	// ファイルをストレージにアップロードしてMediaItemsを構築
-	mediaItems, err := s.uploadMediaFiles(ctx, userIDStr, files)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": fmt.Sprintf("Failed to upload files: %v", err),
-		})
+	var mediaItems []agent.MediaItem
+
+	// 1. 新規ファイルをアップロード
+	if len(files) > 0 {
+		items, err := s.uploadMediaFiles(ctx, userIDStr, files)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": fmt.Sprintf("Failed to upload files: %v", err),
+			})
+		}
+		mediaItems = append(mediaItems, items...)
+	}
+
+	// 2. 既存メディアを取得
+	if len(selectedMediaIds) > 0 {
+		for _, id := range selectedMediaIds {
+			media, err := s.mediaRepo.GetByID(ctx, id)
+			if err != nil {
+				continue // またはエラーハンドリング
+			}
+			mediaItems = append(mediaItems, agent.MediaItem{
+				FileID:      media.ID,
+				URL:         media.URL,
+				Type:        media.Type,
+				ContentType: media.ContentType,
+			})
+		}
 	}
 
 	// フォームフィールドを取得
@@ -136,11 +169,7 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 	}
 
 	// VLogレコードをPENDINGステータスで作成
-	vlogID, _ := ulid.GenerateULID()
 	vlog := &domain.Vlog{
-		BaseModel: domain.BaseModel{
-			ID: vlogID,
-		},
 		Status: domain.VlogStatusPending,
 	}
 	if err := s.vlogRepo.Create(ctx, vlog); err != nil {
@@ -149,17 +178,29 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 
 	// Cloud Tasksにタスクを登録
 	payload := &queue.Task{
-		ID:     vlogID,
+		ID:     vlog.ID,
 		Type:   "ProcessVLogTask",
 		Data:   input,
 		Status: "pending",
 	}
-	if err := s.taskClient.Enqueue(ctx, payload); err != nil {
-		return errors.Wrap(ctx, err)
+
+	cfg := config.GetCtxEnv(ctx)
+	if cfg.Env == "local" {
+		go func() {
+			// ローカル環境ではGoroutineで直接実行
+			if err := s.executeVLogGeneration(ctx, payload); err != nil {
+				// エラーはログに出力（DBなどのステータスはexecuteVLogGeneration内で更新済み）
+				fmt.Printf("Local VLog generation failed: %v\n", err)
+			}
+		}()
+	} else {
+		if err := s.taskClient.Enqueue(ctx, payload); err != nil {
+			return errors.Wrap(ctx, err)
+		}
 	}
 
 	return c.JSON(http.StatusAccepted, CreateVLogResponse{
-		VlogID: vlogID,
+		VlogID: vlog.ID,
 		Status: string(domain.VlogStatusProcessing),
 	})
 }
@@ -174,15 +215,24 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
+	if err := s.executeVLogGeneration(ctx, &task); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+// executeVLogGeneration はVLog生成のコアロジックを実行する
+func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Task) error {
 	// ステータスをPROCESSINGに更新
 	now := time.Now()
 	if err := s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", 0.1); err != nil {
-		return errors.Wrap(ctx, err)
+		return err
 	}
 
 	vlogRef, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: task.ID}})
 	if err != nil {
-		return errors.Wrap(ctx, err)
+		return err
 	}
 	vlogRef.StartedAt = &now
 	_ = s.vlogRepo.Update(ctx, vlogRef)
@@ -201,7 +251,7 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 	if err != nil {
 		// 失敗ステータスに更新
 		_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusFailed, err.Error(), 0)
-		return errors.Wrap(ctx, err)
+		return err
 	}
 
 	// 成功ステータスと生成された情報を更新
@@ -216,10 +266,10 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 	vlogRef.CompletedAt = &completedAt
 
 	if err := s.vlogRepo.Update(ctx, vlogRef); err != nil {
-		return errors.Wrap(ctx, err)
+		return err
 	}
 
-	return c.NoContent(http.StatusOK)
+	return nil
 }
 
 // uploadMediaFiles はマルチパートファイルをストレージにアップロードしてMediaItemsを返す
@@ -255,25 +305,28 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 			ext = getExtensionFromContentType(contentType)
 		}
 		key := fmt.Sprintf("users/%s/uploads/", userID)
+		fileID, _ := ulid.GenerateULID()
+
+		// ストレージにアップロード
+		path := key + fileID + ext
+		url, err := s.storage.UploadFile(ctx, path, data, contentType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
+		}
 
 		// MediaレコードをDBに保存
 		media := &domain.Media{
 			BaseModel: domain.BaseModel{
+				ID:           fileID,
 				CreateUserID: &userID,
 			},
 			ContentType: contentType,
+			Type:        mediaType,
 			Size:        int64(len(data)),
-			URL:         key,
+			URL:         url,
 		}
 		if err := s.mediaRepo.Save(ctx, media); err != nil {
 			return nil, fmt.Errorf("failed to save media record: %w", err)
-		}
-
-		// ストレージにアップロード
-		path := key + media.ID + ext
-		url, err := s.storage.UploadFile(ctx, path, data, contentType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
 		}
 
 		// MediaItemを作成

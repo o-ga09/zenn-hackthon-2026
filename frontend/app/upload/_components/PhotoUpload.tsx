@@ -5,13 +5,21 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Input } from '@/components/ui/input'
 import { Camera, Upload } from 'lucide-react'
 import React, { useState, useRef } from 'react'
-import { X } from 'lucide-react'
+import { X, Library as LibraryIcon, CheckCircle2 } from 'lucide-react'
 import { useUploadForm } from './UploadFormContext'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useSearchParams } from 'next/navigation'
+import { useGetMediaList } from '@/api/mediaApi'
 
 export default function PhotoUpload() {
-  const { uploadedFiles, addFiles, removeFile } = useUploadForm()
+  const searchParams = useSearchParams()
+  const initialSource = searchParams.get('source') || 'upload'
+  
+  const { uploadedFiles, addFiles, removeFile, selectedMediaIds, toggleMediaId } = useUploadForm()
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { data: mediaListData, isLoading: isMediaLoading } = useGetMediaList()
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -58,61 +66,150 @@ export default function PhotoUpload() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-base md:text-lg lg:text-xl">
-            <Camera className="w-4 h-4 md:w-5 md:h-5" />
-            <span>写真をアップロード</span>
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            旅行の思い出の写真を選択してください（複数選択可能）
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div
-              className={`border-2 border-dashed rounded-lg p-4 md:p-8 text-center transition-colors ${
-                isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-              }`}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={handleButtonClick}
-            >
-              <Upload
-                className={`w-10 h-10 md:w-12 md:h-12 mx-auto mb-3 md:mb-4 ${
-                  isDragging ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              />
-              <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
-                ここに写真をドラッグ&ドロップするか、クリックして選択
-              </p>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <Button
-                variant="outline"
-                className="cursor-pointer bg-transparent text-sm md:text-base"
-              >
-                写真を選択
-              </Button>
+      <Tabs defaultValue={initialSource} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="upload" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            新規アップロード
+          </TabsTrigger>
+          <TabsTrigger value="library" className="flex items-center gap-2">
+            <LibraryIcon className="w-4 h-4" />
+            ライブラリから選択
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upload">
+          <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-base md:text-lg lg:text-xl">
+                <Camera className="w-4 h-4 md:w-5 md:h-5" />
+                <span>写真をアップロード</span>
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                旅行の思い出の写真を選択してください（複数選択可能）
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 md:p-8 text-center transition-colors ${
+                    isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={handleButtonClick}
+                >
+                  <Upload
+                    className={`w-10 h-10 md:w-12 md:h-12 mx-auto mb-3 md:mb-4 ${
+                      isDragging ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  />
+                  <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
+                    ここに写真をドラッグ&ドロップするか、クリックして選択
+                  </p>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <Button
+                    variant="outline"
+                    className="cursor-pointer bg-transparent text-sm md:text-base"
+                  >
+                    写真を選択
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="library">
+          <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-base md:text-lg lg:text-xl">
+                <LibraryIcon className="w-4 h-4 md:w-5 md:h-5" />
+                <span>ライブラリから選択</span>
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                アップロード済みの写真から動画に使用するものを選んでください
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isMediaLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : !mediaListData || !mediaListData.media || mediaListData.media.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  まだメディアがアップロードされていません。
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[400px] overflow-y-auto p-1">
+                  {mediaListData.media.map((media) => (
+                    <div
+                      key={media.id}
+                      className={`relative group cursor-pointer transition-all ${
+                        selectedMediaIds.includes(media.id) ? 'ring-2 ring-primary ring-offset-2' : ''
+                      }`}
+                      onClick={() => toggleMediaId(media.id)}
+                    >
+                      <img
+                        src={media.url}
+                        alt="Media"
+                        className="w-full aspect-square object-cover rounded-lg"
+                      />
+                      {selectedMediaIds.includes(media.id) && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center rounded-lg">
+                          <CheckCircle2 className="w-6 h-6 text-primary drop-shadow-md fill-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Selection Summary */}
+      {(uploadedFiles.length > 0 || selectedMediaIds.length > 0) && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-4">
+              {uploadedFiles.length > 0 && (
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">新規アップロード</div>
+                  <div className="text-lg font-bold text-primary">{uploadedFiles.length} <span className="text-sm font-normal text-muted-foreground">枚</span></div>
+                </div>
+              )}
+              {selectedMediaIds.length > 0 && (
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">ライブラリから選択</div>
+                  <div className="text-lg font-bold text-primary">{selectedMediaIds.length} <span className="text-sm font-normal text-muted-foreground">枚</span></div>
+                </div>
+              )}
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground mb-1">合計</div>
+              <div className="text-lg font-bold text-primary">{uploadedFiles.length + selectedMediaIds.length} <span className="text-sm font-normal text-muted-foreground">枚</span></div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      {/* Uploaded Files Preview */}
+      {/* Uploaded Files Preview (新規アップロード分のみ表示) */}
       {uploadedFiles.length > 0 && (
         <div className="space-y-1 md:space-y-2">
           <h4 className="font-semibold text-sm md:text-base">
-            アップロード済み写真 ({uploadedFiles.length}枚)
+            新規アップロード写真 ({uploadedFiles.length}枚)
           </h4>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 md:gap-2 max-h-36 md:max-h-48 overflow-y-auto p-1 md:p-2 border rounded-lg">
             {uploadedFiles.map((file, index) => (

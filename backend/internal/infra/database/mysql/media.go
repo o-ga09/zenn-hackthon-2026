@@ -17,6 +17,14 @@ func (r *MediaRepository) List(ctx context.Context, opts *domain.ListOpts) ([]*d
 	return medias, nil
 }
 
+func (r *MediaRepository) GetByID(ctx context.Context, id string) (*domain.Media, error) {
+	var media *domain.Media
+	if err := Ctx.GetDB(ctx).Where("id = ?", id).First(&media).Error; err != nil {
+		return nil, err
+	}
+	return media, nil
+}
+
 func (r *MediaRepository) Save(ctx context.Context, media *domain.Media) error {
 	if err := Ctx.GetDB(ctx).Save(media).Error; err != nil {
 		return err

@@ -5,24 +5,15 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@radix-ui/react-label'
 import { MapPin } from 'lucide-react'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useFormContext } from 'react-hook-form'
 import { TravelFormValues } from './form-schema'
 
 export default function TravelInfo() {
   const {
     register,
-    formState: { errors, isSubmitted },
-    trigger,
+    formState: { errors },
   } = useFormContext<TravelFormValues>()
-
-  // コンポーネントがマウントされたときにバリデーションを実行
-  useEffect(() => {
-    // フォームが既に送信されている場合はバリデーションを実行
-    if (isSubmitted) {
-      trigger(['travelTitle', 'travelDate'])
-    }
-  }, [isSubmitted, trigger])
 
   return (
     <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
@@ -39,14 +30,13 @@ export default function TravelInfo() {
         <div className="space-y-3 md:space-y-4">
           <div>
             <Label htmlFor="travel-title" className="text-sm md:text-base mb-1 block">
-              旅行のタイトル *
+              旅行のタイトル
             </Label>
             <Input
               id="travel-title"
               placeholder="例: 京都の桜旅行"
               className="text-sm md:text-base"
               {...register('travelTitle')}
-              onBlur={() => trigger('travelTitle')} // フォーカスが外れたときにバリデーション
             />
             {errors.travelTitle && (
               <p className="mt-1 text-xs md:text-sm text-red-500">{errors.travelTitle.message}</p>
@@ -55,14 +45,13 @@ export default function TravelInfo() {
 
           <div>
             <Label htmlFor="travel-date" className="text-sm md:text-base mb-1 block">
-              旅行日 *
+              旅行日
             </Label>
             <Input
               id="travel-date"
               type="date"
               className="text-sm md:text-base"
               {...register('travelDate')}
-              onBlur={() => trigger('travelDate')} // フォーカスが外れたときにバリデーション
             />
             {errors.travelDate && (
               <p className="mt-1 text-xs md:text-sm text-red-500">{errors.travelDate.message}</p>

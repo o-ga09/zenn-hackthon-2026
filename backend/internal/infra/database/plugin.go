@@ -255,8 +255,14 @@ func (p *ZeroValueOmitPlugin) Initialize(db *gorm.DB) error {
 
 // beforeUpdate は、更新前にゼロ値やsql.Null*のValidがfalseのフィールドをomitする
 func (p *ZeroValueOmitPlugin) beforeUpdate(db *gorm.DB) {
-	if db.Statement.Schema != nil && db.Statement.Dest != nil {
+	if db.Statement.Schema != nil {
 		reflectValue := db.Statement.ReflectValue
+
+		// Check if reflectValue kind is valid (struct or slice of structs)
+		// If map is passed to Updates, reflectValue might be map, which we should skip or handle differently
+		if reflectValue.Kind() == reflect.Map {
+			return
+		}
 
 		// スライスの場合は各要素に対して処理
 		if reflectValue.Kind() == reflect.Slice {

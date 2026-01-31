@@ -9,7 +9,7 @@ import VideoGenerationConfirm from './VideoGenerationConfirm'
 import { UploadFormProvider, useUploadForm } from './UploadFormContext'
 
 function UploadStepper() {
-  const { step, nextStep, prevStep, uploadedFiles } = useUploadForm()
+  const { step, nextStep, prevStep, uploadedFiles, selectedMediaIds } = useUploadForm()
   const { formState } = useFormContext()
 
   const steps = [
@@ -17,7 +17,7 @@ function UploadStepper() {
       title: '写真のアップロード',
       description: '旅行の思い出の写真を選択',
       content: <PhotoUpload />,
-      isNextDisabled: uploadedFiles.length === 0,
+      isNextDisabled: uploadedFiles.length === 0 && selectedMediaIds.length === 0,
     },
     {
       title: '旅行情報の入力',

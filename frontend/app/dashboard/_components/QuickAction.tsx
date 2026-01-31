@@ -4,13 +4,22 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Plus, Upload } from 'lucide-react'
 import React from 'react'
 import Statistics from './Statistics'
-import { useCreateVlog } from '@/api/createVlog'
+import { useRouter } from 'next/navigation'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Image, Library } from 'lucide-react'
 
 export default function QuickAction() {
-  const { mutateAsync: createVlog, isPending } = useCreateVlog()
+  const router = useRouter()
 
-  const handleCreateVlog = async () => {
-    const result = await createVlog()
+  const handleNavigateToUpload = (source: 'upload' | 'library') => {
+    router.push(`/upload?source=${source}`)
   }
 
   return (
@@ -30,14 +39,42 @@ export default function QuickAction() {
           </div>
         </CardHeader>
         <CardContent className="px-4 md:px-6 py-3 md:py-4">
-          <Button
-            onClick={handleCreateVlog}
-            disabled={isPending}
-            className="w-full bg-primary hover:bg-primary/90 text-sm md:text-base py-1.5 md:py-2 h-auto disabled:opacity-50"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {isPending ? '生成中...' : '思い出動画を生成してみる'}
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full bg-primary hover:bg-primary/90 text-sm md:text-base py-1.5 md:py-2 h-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                新しい動画を作成
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>動画の作成方法を選択</DialogTitle>
+                <DialogDescription>
+                  どのように動画を作成しますか？
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-1 gap-4 py-4">
+                <Button
+                  variant="outline"
+                  className="h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-primary hover:bg-primary/5 transition-all"
+                  onClick={() => handleNavigateToUpload('library')}
+                >
+                  <Library className="w-8 h-8 text-primary" />
+                  <div className="text-sm font-semibold">ライブラリの素材から作成</div>
+                  <div className="text-xs text-muted-foreground">既にアップロード済みの素材を使用します</div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-primary hover:bg-primary/5 transition-all"
+                  onClick={() => handleNavigateToUpload('upload')}
+                >
+                  <Upload className="w-8 h-8 text-primary" />
+                  <div className="text-sm font-semibold">新しくアップロードして作成</div>
+                  <div className="text-xs text-muted-foreground">新しく写真や動画をアップロードして作成します</div>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
       <Statistics />

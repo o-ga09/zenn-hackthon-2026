@@ -124,6 +124,12 @@ func (s *ImageServer) Upload(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
+	// メディアタイプを判定 (image or video)
+	mediaType := "image"
+	if strings.HasPrefix(contentType, "video/") {
+		mediaType = "video"
+	}
+
 	// データベースにメタデータを保存
 	model := &domain.Media{
 		BaseModel: domain.BaseModel{
@@ -131,7 +137,8 @@ func (s *ImageServer) Upload(c echo.Context) error {
 			CreateUserID: &userID,
 		},
 		ContentType: contentType,
-		Size:        file.Size,
+		Type:        mediaType,
+		Size:        int64(len(fileData)),
 		URL:         storageURL,
 	}
 	if err := s.imageRepo.Save(ctx, model); err != nil {

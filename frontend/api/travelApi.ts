@@ -46,7 +46,9 @@ export const useGetTravelsByUserId = (userId: string) => {
   return useQuery({
     queryKey: USER_TRAVELS_QUERY_KEY(userId),
     queryFn: async (): Promise<TravelsResponse> => {
-      const response = await apiClient.get(`/travels`)
+      const response = await apiClient.get(`/travels`, {
+        params: { userId }
+      })
       return response.data
     },
     // ユーザーIDが空の場合はクエリを無効化

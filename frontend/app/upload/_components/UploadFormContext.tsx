@@ -5,7 +5,6 @@ import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { TravelFormValues, UploadStep, travelFormSchema } from './form-schema'
 import { useRouter } from 'next/navigation'
-import { useCreateTravel } from '@/api/travelApi'
 import { useAuth } from '@/context/authContext'
 import { apiClient } from '@/api/client'
 
@@ -18,6 +17,8 @@ interface UploadFormContextProps {
   addFiles: (files: File[]) => void
   removeFile: (index: number) => void
   uploadedFiles: File[]
+  selectedMediaIds: string[]
+  toggleMediaId: (id: string) => void
   isGenerating: boolean
   generationError: string | null
   vlogId: string | null
@@ -42,12 +43,11 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
   const { user } = useAuth()
   const [step, setStep] = useState<UploadStep>('upload')
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([])
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [vlogId, setVlogId] = useState<string | null>(null)
-
-  const { mutateAsync: createTravel } = useCreateTravel()
 
   const methods = useForm<TravelFormValues>({
     resolver: zodResolver(travelFormSchema),
@@ -57,26 +57,19 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
       travelLocation: '',
       travelDescription: '',
       uploadedFiles: [],
+      mediaIds: [],
     },
     mode: 'onChange',
   })
 
   const nextStep = () => {
     if (step === 'upload') {
-      if (uploadedFiles.length > 0) {
+      if (uploadedFiles.length > 0 || selectedMediaIds.length > 0) {
         setStep('info')
       }
     } else if (step === 'info') {
-      if (
-        methods.formState.isValid &&
-        !methods.formState.errors.travelTitle &&
-        !methods.formState.errors.travelDate
-      ) {
-        setStep('confirm')
-      } else {
-        // フォームのバリデーションを強制的に実行
-        methods.trigger(['travelTitle', 'travelDate'])
-      }
+      // 必須入力がなくなったので、強制的に次へ進む
+      setStep('confirm')
     }
   }
 
@@ -99,24 +92,21 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
         throw new Error('ユーザーが認証されていません。再度ログインしてください。')
       }
 
-      // 1. 旅行情報を保存 (将来的にVLog生成と統合する可能性があるが、現状維持)
-      await createTravel({
-        userId: user.id,
-        title: formDataValues.travelTitle,
-        description: formDataValues.travelDescription || '',
-        startDate: formDataValues.travelDate,
-        endDate: formDataValues.travelDate,
-        sharedId: `share_${new Date().getTime()}`,
-        thumbnail: '/placeholder.webp',
-      })
-
-      // 2. VLog作成APIを呼び出し
+      // 1. VLog作成APIを呼び出し
       const formData = new FormData()
+      
+      // 新規アップロードファイル
       uploadedFiles.forEach(file => {
         formData.append('files', file)
       })
-      formData.append('title', formDataValues.travelTitle)
-      formData.append('travelDate', formDataValues.travelDate)
+
+      // 既存メディアIDの追加 (APIが要求する形式に合わせて実装)
+      if (selectedMediaIds.length > 0) {
+        formData.append('mediaIds', JSON.stringify(selectedMediaIds))
+      }
+
+      formData.append('title', formDataValues.travelTitle || '')
+      formData.append('travelDate', formDataValues.travelDate || '')
       formData.append('destination', formDataValues.travelLocation || '')
       formData.append('theme', 'adventure') // デフォルト
 
@@ -159,6 +149,14 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
     })
   }
 
+  const toggleMediaId = (id: string) => {
+    setSelectedMediaIds(prev => {
+      const next = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+      methods.setValue('mediaIds', next)
+      return next
+    })
+  }
+
   const value = {
     step,
     setStep,
@@ -168,6 +166,8 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
     addFiles,
     removeFile,
     uploadedFiles,
+    selectedMediaIds,
+    toggleMediaId,
     isGenerating,
     generationError,
     vlogId,

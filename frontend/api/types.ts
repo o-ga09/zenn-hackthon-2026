@@ -107,3 +107,27 @@ export interface MediaListResponse {
   total: number
   message?: string
 }
+
+// メディア分析関連の型定義
+export interface MediaAnalysisOutput {
+  fileId: string
+  type: string
+  description: string
+  objects: string[]
+  landmarks: string[]
+  activities: string[]
+  mood: string
+  suggestedCaption: string
+}
+
+export interface MediaAnalysisBatchResponse {
+  results: MediaAnalysisOutput[]
+  summary: {
+    totalItems: number
+    successfulItems: number
+    failedItems: number
+    uniqueLocations: string[]
+    uniqueActivities: string[]
+    overallMood: string
+  }
+}

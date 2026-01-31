@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Play, Calendar, Download, Share2, Video, Image, Upload, X, Loader2 } from 'lucide-react'
 import React, { useState } from 'react'
-import { useUploadMedia, useGetMediaList, MEDIA_QUERY_KEYS } from '@/api/mediaApi'
+import { useAnalyzeMedia, useGetMediaList, MEDIA_QUERY_KEYS } from '@/api/mediaApi'
 import { useGetVlogs } from '@/api/vlogAPi'
 import { toast } from 'sonner'
 
@@ -23,7 +23,7 @@ export default function RecentVideo() {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: boolean }>({})
 
-  const uploadMutation = useUploadMedia()
+  const analyzeMutation = useAnalyzeMedia()
   const { data: mediaListData, isLoading: isMediaLoading } = useGetMediaList()
   const { data: vlogsData, isLoading: isVlogsLoading } = useGetVlogs()
 
@@ -53,53 +53,27 @@ export default function RecentVideo() {
     try {
       const files = Array.from(selectedFiles)
 
-      // 各ファイルのアップロード状態を初期化
+      // 各ファイルの分析状態を初期化
       const initialProgress = files.reduce((acc, file) => {
         acc[file.name] = true
         return acc
       }, {} as { [key: string]: boolean })
       setUploadProgress(initialProgress)
 
-      // すべてのファイルを並列でアップロード
-      const uploadPromises = files.map(async file => {
-        try {
-          // 統一されたアップロード関数を使用（画像・動画自動判別）
-          const result = await uploadMutation.mutateAsync({
-            file: file,
-          })
+      // すべてのファイルを一括でアップロードして分析
+      toast.info(`${files.length}個のファイルのアップロードと分析を開始します...`)
+      
+      await analyzeMutation.mutateAsync(files)
 
-          return result
-        } catch (error) {
-          toast.error(`${file.name} のアップロードに失敗しました`)
-          return null
-        } finally {
-          // アップロード完了後にプログレス状態を更新
-          setUploadProgress(prev => {
-            const updated = { ...prev }
-            delete updated[file.name]
-            return updated
-          })
-        }
-      })
-
-      const results = await Promise.all(uploadPromises)
-      const successCount = results.filter(result => result !== null).length
-      const failedCount = files.length - successCount
-
-      if (successCount > 0) {
-        toast.success(`${successCount}個のメディアファイルがアップロードされました。`)
-      }
-      if (failedCount > 0) {
-        toast.error(`${failedCount}個のファイルのアップロードに失敗しました。`)
-      }
+      toast.success(`${files.length}個のメディアファイルのアップロードと分析が完了しました。`)
 
       // ダイアログを閉じて状態をリセット
       setIsUploadDialogOpen(false)
       setSelectedFiles(null)
       setUploadProgress({})
     } catch (error) {
-      console.error('アップロードエラー:', error)
-      toast.error('アップロード中にエラーが発生しました。')
+      console.error('アップロード・分析エラー:', error)
+      toast.error('アップロードまたは分析中にエラーが発生しました。')
       setUploadProgress({})
     }
   }
@@ -143,7 +117,7 @@ export default function RecentVideo() {
                   素材をアップロード
                 </DialogTitle>
                 <DialogDescription>
-                  旅行の写真や動画をアップロードして、AIが素敵な動画を作成します。
+                  旅行の写真や動画をアップロードすると、AIが内容を分析してタグ付けや要約を自動で行います。
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -165,7 +139,7 @@ export default function RecentVideo() {
                   )}
                   {isUploading && (
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">アップロード中...</div>
+                      <div className="text-sm font-medium">アップロードと分析を行っています...</div>
                       <div className="space-y-1">
                         {Object.keys(uploadProgress).map(fileName => (
                           <div

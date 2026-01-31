@@ -8,6 +8,7 @@ import {
   MediaVideoUploadResponse,
   MediaGetResponse,
   MediaListResponse,
+  MediaAnalysisBatchResponse,
 } from './types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -154,5 +155,35 @@ export const useGetMediaList = () => {
     queryFn: getMediaList,
     staleTime: 1000 * 60 * 2, // 2分間はキャッシュを使用
     gcTime: 1000 * 60 * 5, // 5分後にガベージコレクション
+  })
+}
+
+/**
+ * メディアをアップロードし、同時にAI分析を実行するフック
+ */
+export const useAnalyzeMedia = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (files: File[]): Promise<MediaAnalysisBatchResponse> => {
+      const formData = new FormData()
+      files.forEach(file => {
+        formData.append('files', file)
+      })
+
+      const response = await apiClient.post('/agent/analyze-media', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      return response.data
+    },
+    onSuccess: () => {
+      // 分析完了後にメディア一覧キャッシュを無効化
+      queryClient.invalidateQueries({ queryKey: MEDIA_QUERY_KEYS.images() })
+    },
+    onError: error => {
+      console.error('メディア分析エラー:', error)
+    },
   })
 }
