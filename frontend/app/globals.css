@@ -44,72 +44,72 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #f9a932;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(87.387% 0.16858 167.068);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --radius: 0.75rem;
+  --background: #ffffff;
+  --foreground: #111418;
+  --card: #ffffff;
+  --card-foreground: #111418;
+  --popover: #ffffff;
+  --popover-foreground: #111418;
+  --primary: #7FBFFF;
+  --primary-foreground: #ffffff;
+  --secondary: #8DCBEB;
+  --secondary-foreground: #111418;
+  --muted: #f0f2f4;
+  --muted-foreground: #6b7280;
+  --accent: #EFF8FF;
+  --accent-foreground: #111418;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: #f0f2f4;
+  --input: #f0f2f4;
+  --ring: #7FBFFF;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111418;
+  --sidebar-primary: #7FBFFF;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #EFF8FF;
+  --sidebar-accent-foreground: #111418;
+  --sidebar-border: #f0f2f4;
+  --sidebar-ring: #7FBFFF;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: #71f477;
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #101922;
+  --foreground: #f9fafb;
+  --card: #1a2332;
+  --card-foreground: #f9fafb;
+  --popover: #1a2332;
+  --popover-foreground: #f9fafb;
+  --primary: #7FBFFF;
+  --primary-foreground: #111418;
+  --secondary: #8DCBEB;
+  --secondary-foreground: #f9fafb;
+  --muted: #374151;
+  --muted-foreground: #9ca3af;
+  --accent: #1e3a5f;
+  --accent-foreground: #f9fafb;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: #7FBFFF;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar: #1a2332;
+  --sidebar-foreground: #f9fafb;
+  --sidebar-primary: #7FBFFF;
+  --sidebar-primary-foreground: #111418;
+  --sidebar-accent: #1e3a5f;
+  --sidebar-accent-foreground: #f9fafb;
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: #7FBFFF;
 }
 
 @layer base {
@@ -118,10 +118,25 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
   }
 
   /* スクロールバーを非表示にするクラス */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Kawaii shadow for cards */
+.kawaii-shadow {
+  box-shadow: 0 10px 25px -5px rgba(127, 191, 255, 0.15), 0 8px 10px -6px rgba(127, 191, 255, 0.15);
+}
+
+/* Blob background elements */
+.blob-bg {
+  position: absolute;
+  z-index: 0;
+  filter: blur(60px);
+  opacity: 0.4;
+  border-radius: 9999px;
 }
