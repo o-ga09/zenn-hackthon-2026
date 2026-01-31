@@ -337,34 +337,61 @@ func getExtensionFromContentType(contentType string) string {
 	}
 }
 
-// AnalyzeMediaRequest はメディア分析APIのリクエストボディ
-type AnalyzeMediaRequest struct {
-	FileID      string `json:"fileId" validate:"required"`
-	URL         string `json:"url" validate:"required"`
-	Type        string `json:"type" validate:"required,oneof=image video"`
-	ContentType string `json:"contentType,omitempty"`
-}
-
-// AnalyzeMedia は単一メディアを分析する
+// AnalyzeMedia はメディアを分析する
 // POST /api/agent/analyze-media
+// Content-Type: multipart/form-data
+//
+// フォームフィールド:
+//   - files: メディアファイル（複数可）
 func (s *AgentServer) AnalyzeMedia(c echo.Context) error {
 	ctx := c.Request().Context()
+	// ユーザーIDをコンテキストから取得
+	userIDStr := Ctx.GetCtxFromUser(ctx)
+	if userIDStr == "" {
+		userIDStr = "anonymous"
+	}
 
-	var req AnalyzeMediaRequest
-	if err := c.Bind(&req); err != nil {
+	// マルチパートフォームをパース
+	form, err := c.MultipartForm()
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid request body",
+			"error": "Invalid multipart form",
 		})
 	}
 
-	input := &agent.MediaAnalysisInput{
-		FileID:      req.FileID,
-		URL:         req.URL,
-		Type:        req.Type,
-		ContentType: req.ContentType,
+	// ファイルを取得
+	files := form.File["files"]
+	if len(files) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "No files uploaded. Please upload at least one media file.",
+		})
 	}
 
-	res, err := s.agent.AnalyzeMedia(ctx, input)
+	// ファイルをストレージにアップロードしてMediaItemsを構築
+	mediaItems, err := s.uploadMediaFiles(ctx, userIDStr, files)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": fmt.Sprintf("Failed to upload files: %v", err),
+		})
+	}
+
+	// メディア分析の入力を準備
+	analysisItems := make([]agent.MediaAnalysisInput, len(mediaItems))
+	for i, item := range mediaItems {
+		analysisItems[i] = agent.MediaAnalysisInput{
+			FileID:      item.FileID,
+			URL:         item.URL,
+			Type:        item.Type,
+			ContentType: item.ContentType,
+		}
+	}
+
+	input := &agent.MediaAnalysisBatchInput{
+		Items: analysisItems,
+	}
+
+	// 分析を実行
+	res, err := s.agent.AnalyzeMediaBatch(ctx, input)
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}

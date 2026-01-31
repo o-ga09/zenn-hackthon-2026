@@ -85,6 +85,27 @@ type MediaAnalysisOutput struct {
 	SuggestedCaption string   `json:"suggestedCaption" jsonschema:"description=提案されるキャプション"`
 }
 
+// MediaAnalysisBatchInput は複数メディア分析の入力
+type MediaAnalysisBatchInput struct {
+	Items []MediaAnalysisInput `json:"items" jsonschema:"description=分析対象のメディアリスト"`
+}
+
+// MediaAnalysisBatchOutput は複数メディア分析の出力
+type MediaAnalysisBatchOutput struct {
+	Results []MediaAnalysisOutput `json:"results" jsonschema:"description=分析結果のリスト"`
+	Summary MediaAnalysisSummary  `json:"summary" jsonschema:"description=分析結果の全体サマリー"`
+}
+
+// MediaAnalysisSummary は分析結果の全体サマリー
+type MediaAnalysisSummary struct {
+	TotalItems       int      `json:"totalItems"`
+	SuccessfulItems  int      `json:"successfulItems"`
+	FailedItems      int      `json:"failedItems"`
+	UniqueLocations  []string `json:"uniqueLocations"`
+	UniqueActivities []string `json:"uniqueActivities"`
+	OverallMood      string   `json:"overallMood"`
+}
+
 // ============================================================
 // 進捗通知用スキーマ（SSE用）
 // ============================================================

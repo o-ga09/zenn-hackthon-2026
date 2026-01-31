@@ -170,19 +170,57 @@ func (ga *GenkitAgent) CreateVlogWithProgress(ctx context.Context, input *agent.
 	return output, nil
 }
 
-// AnalyzeMedia は単一のメディアを分析する
-func (ga *GenkitAgent) AnalyzeMedia(ctx context.Context, input *agent.MediaAnalysisInput) (*agent.MediaAnalysisOutput, error) {
+// AnalyzeMediaBatch は複数のメディアを分析する
+func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.MediaAnalysisBatchInput) (*agent.MediaAnalysisBatchOutput, error) {
 	// FlowContextをコンテキストに設定
 	ctx = WithFlowContext(ctx, ga.flowContext)
 
-	// ツールを直接実行
-	outputRaw, err := ga.tools.AnalyzeMedia.RunRaw(ctx, *input)
-	if err != nil {
-		return nil, fmt.Errorf("media analysis failed: %w", err)
-	}
-	output := outputRaw.(agent.MediaAnalysisOutput)
+	// 各メディアを分析
+	results := make([]agent.MediaAnalysisOutput, 0, len(input.Items))
+	successfulItems := 0
+	failedItems := 0
 
-	return &output, nil
+	locationMap := make(map[string]bool)
+	activityMap := make(map[string]bool)
+
+	for _, item := range input.Items {
+		outputRaw, err := ga.tools.AnalyzeMedia.RunRaw(ctx, item)
+		if err != nil {
+			failedItems++
+			continue
+		}
+		output := outputRaw.(agent.MediaAnalysisOutput)
+		results = append(results, output)
+		successfulItems++
+
+		for _, l := range output.Landmarks {
+			locationMap[l] = true
+		}
+		for _, a := range output.Activities {
+			activityMap[a] = true
+		}
+	}
+
+	uniqueLocations := make([]string, 0, len(locationMap))
+	for l := range locationMap {
+		uniqueLocations = append(uniqueLocations, l)
+	}
+	uniqueActivities := make([]string, 0, len(activityMap))
+	for a := range activityMap {
+		uniqueActivities = append(uniqueActivities, a)
+	}
+
+	return &agent.MediaAnalysisBatchOutput{
+		Results: results,
+		Summary: agent.MediaAnalysisSummary{
+			TotalItems:       len(input.Items),
+			SuccessfulItems:  successfulItems,
+			FailedItems:      failedItems,
+			UniqueLocations:  uniqueLocations,
+			UniqueActivities: uniqueActivities,
+			OverallMood:      "", // 必要に応じて設定
+		},
+	}, nil
 }
 
 // GetFlowContext は内部のFlowContextを取得する（テスト用）

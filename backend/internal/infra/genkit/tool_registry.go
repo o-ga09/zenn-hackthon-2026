@@ -23,7 +23,7 @@ type RegisteredTools struct {
 // RegisterAllTools はすべてのツールを登録し、RegisteredToolsを返す
 func RegisterAllTools(g *genkit.Genkit, baseURL string) *RegisteredTools {
 	analyzeMedia := DefineAnalyzeMediaTool(g)
-	analyzeMediaBatch := DefineAnalyzeMediaBatchTool(g, analyzeMedia)
+	analyzeMediaBatch := DefineAnalyzeMediaBatchTool(g)
 	uploadMedia := DefineUploadMediaTool(g)
 	generateShareURL := DefineGenerateShareURLTool(g, baseURL)
 	generateThumbnail := DefineGenerateThumbnailTool(g)

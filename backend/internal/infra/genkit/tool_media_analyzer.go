@@ -108,38 +108,15 @@ func fetchMediaData(url string, fallbackContentType string) ([]byte, string, err
 	return data, contentType, nil
 }
 
-// BatchAnalysisInput は複数メディアの一括分析入力
-type BatchAnalysisInput struct {
-	Items []agent.MediaAnalysisInput `json:"items" jsonschema:"description=分析対象のメディアリスト"`
-}
-
-// BatchAnalysisOutput は複数メディアの一括分析出力
-type BatchAnalysisOutput struct {
-	Results []agent.MediaAnalysisOutput `json:"results" jsonschema:"description=分析結果のリスト"`
-	Summary AnalysisSummary             `json:"summary" jsonschema:"description=全体のサマリー"`
-}
-
-// AnalysisSummary は分析結果の全体サマリー
-type AnalysisSummary struct {
-	TotalItems       int      `json:"totalItems"`
-	SuccessfulItems  int      `json:"successfulItems"`
-	FailedItems      int      `json:"failedItems"`
-	UniqueLocations  []string `json:"uniqueLocations"`
-	UniqueActivities []string `json:"uniqueActivities"`
-	OverallMood      string   `json:"overallMood"`
-}
-
 // DefineAnalyzeMediaBatchTool は複数メディアの一括分析ツールを定義する
-// NOTE: バッチ分析は現在Flow層で実装されているため、このツールは将来の拡張用
-func DefineAnalyzeMediaBatchTool(g *genkit.Genkit, _ ai.Tool) ai.Tool {
+// NOTE: 現在はGenkitAgent.AnalyzeMediaBatchで実装されているため、このツールは将来のリファクタリング用
+func DefineAnalyzeMediaBatchTool(g *genkit.Genkit) ai.Tool {
 	return genkit.DefineTool(g, "analyzeMediaBatch",
 		"複数のメディアを一括で分析し、全体のサマリーを生成する",
-		func(ctx *ai.ToolContext, input BatchAnalysisInput) (BatchAnalysisOutput, error) {
-			// NOTE: 現在はFlow層でループ処理しているため、このツールは空実装
-			// 将来的にはここで並列分析を実装可能
-			return BatchAnalysisOutput{
+		func(ctx *ai.ToolContext, input agent.MediaAnalysisBatchInput) (agent.MediaAnalysisBatchOutput, error) {
+			return agent.MediaAnalysisBatchOutput{
 				Results: []agent.MediaAnalysisOutput{},
-				Summary: AnalysisSummary{
+				Summary: agent.MediaAnalysisSummary{
 					TotalItems:       len(input.Items),
 					SuccessfulItems:  0,
 					FailedItems:      len(input.Items),

@@ -11,8 +11,8 @@ type IAgent interface {
 	// CreateVlogWithProgress はメディアからVLogを生成し、進捗をコールバックで通知する
 	CreateVlogWithProgress(ctx context.Context, input *VlogInput, onProgress func(FlowProgress)) (*VlogOutput, error)
 
-	// AnalyzeMedia は単一のメディアを分析する（ツール単体テスト用）
-	AnalyzeMedia(ctx context.Context, input *MediaAnalysisInput) (*MediaAnalysisOutput, error)
+	// AnalyzeMediaBatch は複数のメディアを分析する
+	AnalyzeMediaBatch(ctx context.Context, input *MediaAnalysisBatchInput) (*MediaAnalysisBatchOutput, error)
 }
 
 // ProgressCallback は進捗通知用のコールバック型
