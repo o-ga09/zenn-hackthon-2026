@@ -90,7 +90,7 @@ export function MediaAnalyticsDialog({ media, open, onOpenChange }: MediaAnalyti
   if (media?.status === 'pending' || media?.status === 'uploading') {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg sm:max-w-full">
+        <DialogContent className="max-w-full sm:max-w-lg animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-300">
           <DialogHeader>
             <DialogTitle>分析中です</DialogTitle>
             <DialogDescription>
@@ -108,7 +108,7 @@ export function MediaAnalyticsDialog({ media, open, onOpenChange }: MediaAnalyti
   if (media?.status === 'failed') {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg sm:max-w-full">
+        <DialogContent className="max-w-full sm:max-w-lg animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-300">
           <DialogHeader>
             <DialogTitle>分析失敗</DialogTitle>
             <DialogDescription>メディアの分析に失敗しました。</DialogDescription>
@@ -127,7 +127,7 @@ export function MediaAnalyticsDialog({ media, open, onOpenChange }: MediaAnalyti
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-w-full">
+      <DialogContent className="max-w-full sm:max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-300">
         <DialogHeader>
           <DialogTitle>メディアのタグを編集</DialogTitle>
           <DialogDescription>分析結果を確認・編集して保存してください。</DialogDescription>

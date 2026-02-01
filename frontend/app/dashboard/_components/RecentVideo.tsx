@@ -12,7 +12,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Play, Calendar, Download, Share2, Video, Image, Upload, X, Loader2 } from 'lucide-react'
+import { Calendar, Video, Image, Upload, Loader2 } from 'lucide-react'
 import React, { useState, useMemo } from 'react'
 import { useAnalyzeMedia, useGetMediaList } from '@/api/mediaApi'
 import { useGetVlogs } from '@/api/vlogAPi'
@@ -391,11 +391,6 @@ function VideoGrid({ videos, isLoading = false, onMediaClick }: VideoGridProps) 
                         isCompleted && onMediaClick ? 'cursor-pointer' : 'cursor-default'
                       }`}
                       onClick={() => {
-                        console.log('[VideoGrid] onClick triggered')
-                        console.log('[VideoGrid] video:', video)
-                        console.log('[VideoGrid] isCompleted:', isCompleted)
-                        console.log('[VideoGrid] onMediaClick exists:', !!onMediaClick)
-
                         if (isCompleted && onMediaClick) {
                           // Mediaオブジェクトを構築
                           const media: Media = {
