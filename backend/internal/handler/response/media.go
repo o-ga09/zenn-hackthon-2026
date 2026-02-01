@@ -16,11 +16,12 @@ type MediaGetResponse struct {
 }
 
 type MediaListItem struct {
-	ID          string `json:"id"`                   // ファイルID
-	Type        string `json:"type"`                 // メディアタイプ
-	ContentType string `json:"content_type"`         // コンテンツタイプ
-	Size        int64  `json:"size"`                 // ファイルサイズ（バイト単位）
-	URL         string `json:"url"`                  // 取得URL
-	ImageData   string `json:"image_data,omitempty"` // Base64エンコードされた画像データ
-	CreatedAt   string `json:"created_at"`           // 作成日時
+	ID          string  `json:"id"`                   // ファイルID
+	Type        string  `json:"type"`                 // メディアタイプ
+	ContentType string  `json:"content_type"`         // コンテンツタイプ
+	Size        int64   `json:"size"`                 // ファイルサイズ（バイト単位）
+	URL         *string `json:"url,omitempty"`        // 取得URL
+	Status      string  `json:"status"`               // ステータス
+	ImageData   string  `json:"image_data,omitempty"` // Base64エンコードされた画像データ
+	CreatedAt   string  `json:"created_at"`           // 作成日時
 }

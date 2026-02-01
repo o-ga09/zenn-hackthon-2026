@@ -39,4 +39,5 @@ type Activity struct {
 type IMediaAnalyticsRepository interface {
 	Save(ctx context.Context, analytics *MediaAnalytics) error
 	FindByFileID(ctx context.Context, fileID string) (*MediaAnalytics, error)
+	Update(ctx context.Context, analytics *MediaAnalytics) error
 }

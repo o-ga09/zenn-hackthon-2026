@@ -14,6 +14,8 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
+	nullvalue "github.com/o-ga09/zenn-hackthon-2026/pkg/null_value"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
 )
 
 type IImageServer interface {
@@ -21,17 +23,21 @@ type IImageServer interface {
 	Upload(c echo.Context) error
 	GetByKey(c echo.Context) error
 	Delete(c echo.Context) error
+	GetAnalytics(c echo.Context) error
+	UpdateAnalytics(c echo.Context) error
 }
 
 type ImageServer struct {
-	imageRepo domain.IMediaRepository
-	storage   domain.IImageStorage
+	imageRepo     domain.IMediaRepository
+	storage       domain.IImageStorage
+	analyticsRepo domain.IMediaAnalyticsRepository
 }
 
-func NewImageServer(imageRepo domain.IMediaRepository, storage domain.IImageStorage) *ImageServer {
+func NewImageServer(imageRepo domain.IMediaRepository, storage domain.IImageStorage, analyticsRepo domain.IMediaAnalyticsRepository) *ImageServer {
 	return &ImageServer{
-		imageRepo: imageRepo,
-		storage:   storage,
+		imageRepo:     imageRepo,
+		storage:       storage,
+		analyticsRepo: analyticsRepo,
 	}
 }
 
@@ -53,12 +59,17 @@ func (s *ImageServer) List(c echo.Context) error {
 
 	mediaResponses := make([]*response.MediaListItem, 0, len(medias))
 	for _, media := range medias {
+		var key string
+		if media.URL.Valid {
+			key = fmt.Sprintf("%s/%s/%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL.String)
+		}
 		mediaResponses = append(mediaResponses, &response.MediaListItem{
 			ID:          media.ID,
 			ContentType: media.ContentType,
 			Size:        media.Size,
-			URL:         fmt.Sprintf("%s/%s/%s%s.%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL, media.ID, strings.Split(media.ContentType, "/")[1]),
-			ImageData:   base64Images[media.URL],
+			URL:         ptr.StringToPtr(key),
+			Status:      string(media.Status),
+			ImageData:   base64Images[media.URL.String],
 			CreatedAt:   media.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
@@ -112,7 +123,7 @@ func (s *ImageServer) Upload(c echo.Context) error {
 
 	// ユーザーIDを取得
 	userID := context.GetCtxFromUser(ctx)
-	key := fmt.Sprintf("media/%s/%s%s", userID)
+	key := fmt.Sprintf("media/%s/", userID)
 
 	// データベースにメタデータを保存
 	model := &domain.Media{
@@ -121,7 +132,7 @@ func (s *ImageServer) Upload(c echo.Context) error {
 		},
 		ContentType: contentType,
 		Size:        int64(len(fileData)),
-		URL:         key,
+		URL:         nullvalue.ToNullString(key),
 	}
 	if err := s.imageRepo.Save(ctx, model); err != nil {
 		return errors.Wrap(ctx, err)
@@ -183,4 +194,116 @@ func (s *ImageServer) Delete(c echo.Context) error {
 		return err
 	}
 	return c.NoContent(http.StatusNoContent)
+}
+
+// GetAnalytics メディアの分析結果を取得
+func (s *ImageServer) GetAnalytics(c echo.Context) error {
+	ctx := c.Request().Context()
+	var req request.GetMediaAnalyticsParam
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	analytics, err := s.analyticsRepo.FindByFileID(ctx, req.ID)
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// ドメインモデルからレスポンスに変換
+	objects := make([]string, len(analytics.Objects))
+	for i, obj := range analytics.Objects {
+		objects[i] = obj.Name
+	}
+	landmarks := make([]string, len(analytics.Landmarks))
+	for i, landmark := range analytics.Landmarks {
+		landmarks[i] = landmark.Name
+	}
+	activities := make([]string, len(analytics.Activities))
+	for i, activity := range analytics.Activities {
+		activities[i] = activity.Name
+	}
+
+	return c.JSON(http.StatusOK, response.MediaAnalyticsResponse{
+		FileID:      analytics.FileID,
+		Description: analytics.Description,
+		Mood:        analytics.Mood,
+		Objects:     objects,
+		Landmarks:   landmarks,
+		Activities:  activities,
+	})
+}
+
+// UpdateAnalytics メディアの分析結果を更新
+func (s *ImageServer) UpdateAnalytics(c echo.Context) error {
+	ctx := c.Request().Context()
+	var req request.UpdateMediaAnalyticsRequest
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// 既存の分析結果を取得
+	analytics, err := s.analyticsRepo.FindByFileID(ctx, req.ID)
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// リクエストから更新
+	if req.Description != nil {
+		analytics.Description = *req.Description
+	}
+	if req.Mood != nil {
+		analytics.Mood = *req.Mood
+	}
+	if req.Objects != nil {
+		analytics.Objects = make([]domain.DetectedObject, len(req.Objects))
+		for i, name := range req.Objects {
+			analytics.Objects[i] = domain.DetectedObject{Name: name}
+		}
+	}
+	if req.Landmarks != nil {
+		analytics.Landmarks = make([]domain.Landmark, len(req.Landmarks))
+		for i, name := range req.Landmarks {
+			analytics.Landmarks[i] = domain.Landmark{Name: name}
+		}
+	}
+	if req.Activities != nil {
+		analytics.Activities = make([]domain.Activity, len(req.Activities))
+		for i, name := range req.Activities {
+			analytics.Activities[i] = domain.Activity{Name: name}
+		}
+	}
+
+	// 更新を実行
+	if err := s.analyticsRepo.Update(ctx, analytics); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	// 更新後のレスポンスを返す
+	objects := make([]string, len(analytics.Objects))
+	for i, obj := range analytics.Objects {
+		objects[i] = obj.Name
+	}
+	landmarks := make([]string, len(analytics.Landmarks))
+	for i, landmark := range analytics.Landmarks {
+		landmarks[i] = landmark.Name
+	}
+	activities := make([]string, len(analytics.Activities))
+	for i, activity := range analytics.Activities {
+		activities[i] = activity.Name
+	}
+
+	return c.JSON(http.StatusOK, response.MediaAnalyticsResponse{
+		FileID:      analytics.FileID,
+		Description: analytics.Description,
+		Mood:        analytics.Mood,
+		Objects:     objects,
+		Landmarks:   landmarks,
+		Activities:  activities,
+	})
 }

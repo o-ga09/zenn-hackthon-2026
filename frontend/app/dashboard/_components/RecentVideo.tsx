@@ -1,6 +1,5 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -10,40 +9,115 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Play, Calendar, Download, Share2, Video, Image, Upload, X, Loader2 } from 'lucide-react'
-import React, { useState } from 'react'
-import { useAnalyzeMedia, useGetMediaList, MEDIA_QUERY_KEYS } from '@/api/mediaApi'
+import React, { useState, useMemo } from 'react'
+import { useAnalyzeMedia, useGetMediaList } from '@/api/mediaApi'
 import { useGetVlogs } from '@/api/vlogAPi'
 import { toast } from 'sonner'
+import { useMediaSSE } from '@/hooks/useMediaSSE'
+import { useNotifications } from '@/context/notificationContext'
+import { MediaAnalyticsDialog } from '@/app/upload/_components/MediaAnalyticsDialog'
+import { Media } from '@/api/types'
 
 export default function RecentVideo() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: boolean }>({})
+  const [analyzingMediaIds, setAnalyzingMediaIds] = useState<string[]>([])
+  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null)
+  const [isAnalyticsDialogOpen, setIsAnalyticsDialogOpen] = useState(false)
 
   const analyzeMutation = useAnalyzeMedia()
   const { data: mediaListData, isLoading: isMediaLoading } = useGetMediaList()
   const { data: vlogsData, isLoading: isVlogsLoading } = useGetVlogs()
+  const { addNotification, fetchNotifications } = useNotifications()
 
   const [showAll, setShowAll] = useState(false)
+
+  // メディアIDの配列を安定化（不要な再レンダリングを防ぐ）
+  const stableAnalyzingMediaIds = useMemo(() => analyzingMediaIds, [analyzingMediaIds.join(',')])
+
+  // SSEでメディア分析の進捗を監視
+  const { status: sseStatus, isConnected } = useMediaSSE({
+    mediaIds: stableAnalyzingMediaIds,
+    enabled: stableAnalyzingMediaIds.length > 0,
+    onFetchNotifications: fetchNotifications,
+    onProgress: update => {
+      console.log('[SSE] Progress update:', update)
+    },
+    onComplete: medias => {
+      console.log('[RecentVideo] onComplete called with medias:', medias)
+      console.log('[RecentVideo] medias length:', medias?.length)
+
+      // 成功した項目数をカウント
+      const successCount = medias.filter(m => m.status === 'completed').length
+      const failedCount = medias.filter(m => m.status === 'failed').length
+
+      console.log('[RecentVideo] カウント結果 - success:', successCount, 'failed:', failedCount)
+
+      // 通知を追加
+      if (successCount > 0) {
+        console.log('[RecentVideo] 成功通知を追加')
+        addNotification({
+          type: 'success',
+          title: '分析完了',
+          message: `${successCount}個のメディアの分析が完了しました`,
+        })
+      }
+
+      if (failedCount > 0) {
+        console.log('[RecentVideo] エラー通知を追加')
+        addNotification({
+          type: 'error',
+          title: '分析エラー',
+          message: `${failedCount}個のメディアの分析に失敗しました`,
+        })
+      }
+
+      // SSE監視を停止
+      console.log('[RecentVideo] SSE監視を停止')
+      setAnalyzingMediaIds([])
+    },
+    onError: error => {
+      console.error('[SSE] Error:', error)
+      addNotification({
+        type: 'error',
+        title: '接続エラー',
+        message: 'メディア分析の進捗監視中にエラーが発生しました',
+      })
+      setAnalyzingMediaIds([])
+    },
+  })
 
   // 実際のメディアデータから素材動画を生成（初期最新3件のみ）
   const originalMedia = (mediaListData?.media || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, showAll ? undefined : 3)
-    .map(media => ({
-      id: media.id,
-      title: `${media.type === 'video' ? '動画' : '画像'}_${media.id.slice(-6)}`, // タイプに応じたタイトル
-      date: new Date(media.created_at).toLocaleDateString('ja-JP'),
-      thumbnail: media.url,
-      image_data: media.image_data,
-      video_url: media.type === 'video' ? media.url : undefined, // 動画の場合はvideo_urlを設定
-      duration: media.type === 'video' ? '不明' : '', // 動画の場合は不明、画像の場合は固定値
-      type: 'original',
-      media_type: media.type, // メディアタイプを保持
-    }))
+    .map(media => {
+      // 分析完了前はプレースホルダー、完了後は実際の画像を表示
+      const isAnalyzing = media.status === 'pending' || media.status === 'uploading'
+      const thumbnail = isAnalyzing
+        ? '/placeholder.webp'
+        : media.url
+          ? media.url
+          : '/placeholder.webp'
+
+      return {
+        id: media.id,
+        title: `${media.type === 'video' ? '動画' : '画像'}_${media.id.slice(-6)}`, // タイプに応じたタイトル
+        date: new Date(media.created_at).toLocaleDateString('ja-JP'),
+        thumbnail: thumbnail,
+        image_data: isAnalyzing ? undefined : media.image_data,
+        video_url: media.type === 'video' ? media.url : undefined, // 動画の場合はvideo_urlを設定
+        duration: media.type === 'video' ? '不明' : '', // 動画の場合は不明、画像の場合は固定値
+        type: 'original',
+        media_type: media.type, // メディアタイプを保持
+        status: media.status, // ステータスを保持
+      }
+    })
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files)
@@ -68,9 +142,15 @@ export default function RecentVideo() {
       // すべてのファイルを一括でアップロードして分析
       toast.info(`${files.length}個のファイルのアップロードと分析を開始します...`)
 
-      await analyzeMutation.mutateAsync(files)
+      const result = await analyzeMutation.mutateAsync(files)
 
-      toast.success(`${files.length}個のメディアファイルのアップロードと分析が完了しました。`)
+      // アップロード完了通知
+      toast.success(`${files.length}個のメディアファイルのアップロードが完了しました。分析中...`)
+
+      // SSEで分析の進捗を監視開始
+      if (result.media_ids && result.media_ids.length > 0) {
+        setAnalyzingMediaIds(result.media_ids)
+      }
 
       // ダイアログを閉じて状態をリセット
       setIsUploadDialogOpen(false)
@@ -89,20 +169,28 @@ export default function RecentVideo() {
 
   const isUploading = Object.keys(uploadProgress).length > 0
 
+  // VLog型を定義
+  interface VLog {
+    id: string
+    share_url?: string
+    created_at: string
+    thumbnail?: string
+    video_url?: string
+    duration?: number
+  }
+
   // 生成動画（VLog）を VideoGrid 用の形式に変換
   const generatedVideos = (vlogsData?.items || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map(v => ({
-      id: (v as any).id || String(Math.random()),
-      title: (v as any).share_url || `VLog_${String((v as any).id || '').slice(-6)}`,
-      date: new Date((v as any).created_at).toLocaleDateString('ja-JP'),
-      thumbnail: (v as any).thumbnail || (v as any).video_url || '/placeholder.webp',
-      video_url: (v as any).video_url,
+    .map((v: VLog) => ({
+      id: v.id || String(Math.random()),
+      title: v.share_url || `VLog_${String(v.id || '').slice(-6)}`,
+      date: new Date(v.created_at).toLocaleDateString('ja-JP'),
+      thumbnail: v.thumbnail || v.video_url || '/placeholder.webp',
+      video_url: v.video_url,
       duration:
-        typeof (v as any).duration === 'number'
-          ? `${Math.floor((v as any).duration / 60)}:${String(
-              Math.floor((v as any).duration % 60)
-            ).padStart(2, '0')}`
+        typeof v.duration === 'number'
+          ? `${Math.floor(v.duration / 60)}:${String(Math.floor(v.duration % 60)).padStart(2, '0')}`
           : '0:00',
       type: 'generated',
     }))
@@ -232,9 +320,24 @@ export default function RecentVideo() {
         </TabsContent>
 
         <TabsContent value="original" className="mt-0">
-          <VideoGrid videos={originalMedia} isLoading={isMediaLoading} />
+          <VideoGrid
+            videos={originalMedia}
+            isLoading={isMediaLoading}
+            onMediaClick={media => {
+              console.log('[RecentVideo] onMediaClick called with media:', media)
+              setSelectedMedia(media)
+              setIsAnalyticsDialogOpen(true)
+            }}
+          />
         </TabsContent>
       </Tabs>
+
+      {/* Analytics Dialog */}
+      <MediaAnalyticsDialog
+        media={selectedMedia}
+        open={isAnalyticsDialogOpen}
+        onOpenChange={setIsAnalyticsDialogOpen}
+      />
     </div>
   )
 }
@@ -251,11 +354,13 @@ interface VideoGridProps {
     duration: string
     type: string
     media_type?: string // メディアタイプ (image or video)
+    status?: string // メディアステータス (pending/uploading/completed/failed)
   }>
   isLoading?: boolean
+  onMediaClick?: (media: Media) => void
 }
 
-function VideoGrid({ videos, isLoading = false }: VideoGridProps) {
+function VideoGrid({ videos, isLoading = false, onMediaClick }: VideoGridProps) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -271,41 +376,139 @@ function VideoGrid({ videos, isLoading = false }: VideoGridProps) {
           動画がありません。新しい動画を作成してみましょう！
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          {videos.map(video => (
-            <div
-              key={video.id}
-              className="relative aspect-[4/3] bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden rounded-lg"
-            >
-              {video.video_url || video.media_type === 'video' ? (
-                <video
-                  src={video.video_url || video.image_data}
-                  poster={video.image_data}
-                  className="w-full h-full object-cover"
-                  controls
-                  playsInline
-                  preload="metadata"
-                />
-              ) : (
-                <img
-                  src={video.image_data || video.thumbnail}
-                  alt={video.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              )}
+        <TooltipProvider>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            {videos.map(video => {
+              const isAnalyzing = video.status === 'pending' || video.status === 'uploading'
+              const isFailed = video.status === 'failed'
+              const isCompleted = video.status === 'completed'
 
-              {/* タイトルオーバーレイ */}
-              <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-2 pointer-events-none">
-                <h3 className="text-white font-medium text-sm line-clamp-1">{video.title}</h3>
-                <div className="flex items-center text-xs text-white/80">
-                  <Calendar className="w-3 h-3 mr-1" />
-                  {video.date}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              return (
+                <Tooltip key={video.id}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={`relative aspect-[4/3] bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden rounded-lg group ${
+                        isCompleted && onMediaClick ? 'cursor-pointer' : 'cursor-default'
+                      }`}
+                      onClick={() => {
+                        console.log('[VideoGrid] onClick triggered')
+                        console.log('[VideoGrid] video:', video)
+                        console.log('[VideoGrid] isCompleted:', isCompleted)
+                        console.log('[VideoGrid] onMediaClick exists:', !!onMediaClick)
+
+                        if (isCompleted && onMediaClick) {
+                          // Mediaオブジェクトを構築
+                          const media: Media = {
+                            id: video.id,
+                            type: video.media_type || 'image',
+                            content_type: video.media_type === 'video' ? 'video/mp4' : 'image/jpeg',
+                            size: 0,
+                            url: video.video_url || video.thumbnail,
+                            image_data: video.image_data,
+                            status:
+                              (video.status as 'pending' | 'uploading' | 'completed' | 'failed') ||
+                              'completed',
+                            progress: 1,
+                            created_at: video.date,
+                            updated_at: video.date,
+                          }
+                          console.log('[VideoGrid] Calling onMediaClick with media:', media)
+                          onMediaClick(media)
+                        }
+                      }}
+                    >
+                      {video.video_url || video.media_type === 'video' ? (
+                        <video
+                          src={video.video_url || video.image_data}
+                          poster={video.image_data}
+                          className="w-full h-full object-cover"
+                          controls
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={video.image_data || video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+
+                      {/* 分析中のオーバーレイ */}
+                      {isAnalyzing && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                          <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
+                          <span className="text-white text-sm font-medium">分析中...</span>
+                        </div>
+                      )}
+
+                      {/* エラー表示 */}
+                      {isFailed && (
+                        <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                          <div className="bg-red-500 text-white px-3 py-1 rounded text-xs font-medium">
+                            分析失敗
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 詳細ボタン（分析完了時のみ表示） */}
+                      {isCompleted && onMediaClick && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="absolute bottom-2 right-2 w-auto h-7 px-3 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                          onClick={e => {
+                            e.stopPropagation()
+                            const media: Media = {
+                              id: video.id,
+                              type: video.media_type || 'image',
+                              content_type:
+                                video.media_type === 'video' ? 'video/mp4' : 'image/jpeg',
+                              size: 0,
+                              url: video.video_url || video.thumbnail,
+                              image_data: video.image_data,
+                              status:
+                                (video.status as
+                                  | 'pending'
+                                  | 'uploading'
+                                  | 'completed'
+                                  | 'failed') || 'completed',
+                              progress: 1,
+                              created_at: video.date,
+                              updated_at: video.date,
+                            }
+                            onMediaClick(media)
+                          }}
+                        >
+                          詳細
+                        </Button>
+                      )}
+
+                      {/* タイトルオーバーレイ */}
+                      <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-2 pointer-events-none">
+                        <h3 className="text-white font-medium text-sm line-clamp-1">
+                          {video.title}
+                        </h3>
+                        <div className="flex items-center text-xs text-white/80">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {video.date}
+                        </div>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {isAnalyzing && '分析中です'}
+                      {isFailed && '分析に失敗しました'}
+                      {isCompleted && onMediaClick && 'クリックで詳細を表示'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        </TooltipProvider>
       )}
     </div>
   )

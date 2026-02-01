@@ -4,22 +4,36 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Camera, Upload } from 'lucide-react'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, Suspense } from 'react'
 import { X, Library as LibraryIcon, CheckCircle2 } from 'lucide-react'
 import { useUploadForm } from './UploadFormContext'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSearchParams } from 'next/navigation'
 import { useGetMediaList } from '@/api/mediaApi'
+import { Media } from '@/api/types'
+import { MediaAnalyticsDialog } from './MediaAnalyticsDialog'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
-export default function PhotoUpload() {
+function PhotoUploadInner() {
   const searchParams = useSearchParams()
   const initialSource = searchParams.get('source') || 'upload'
-  
+
   const { uploadedFiles, addFiles, removeFile, selectedMediaIds, toggleMediaId } = useUploadForm()
   const [isDragging, setIsDragging] = useState(false)
+  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: mediaListData, isLoading: isMediaLoading } = useGetMediaList()
+
+  const handleMediaClick = (media: Media, e: React.MouseEvent) => {
+    // 分析完了のメディアのみクリック可能
+    if (media.status === 'completed') {
+      e.stopPropagation()
+      setSelectedMedia(media)
+      setIsDialogOpen(true)
+    }
+  }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -93,7 +107,9 @@ export default function PhotoUpload() {
               <div className="space-y-4">
                 <div
                   className={`border-2 border-dashed rounded-lg p-4 md:p-8 text-center transition-colors ${
-                    isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                    isDragging
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
                   }`}
                   onDragEnter={handleDragEnter}
                   onDragOver={handleDragOver}
@@ -151,28 +167,82 @@ export default function PhotoUpload() {
                   まだメディアがアップロードされていません。
                 </div>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[400px] overflow-y-auto p-1">
-                  {mediaListData.media.map((media) => (
-                    <div
-                      key={media.id}
-                      className={`relative group cursor-pointer transition-all ${
-                        selectedMediaIds.includes(media.id) ? 'ring-2 ring-primary ring-offset-2' : ''
-                      }`}
-                      onClick={() => toggleMediaId(media.id)}
-                    >
-                      <img
-                        src={media.url}
-                        alt="Media"
-                        className="w-full aspect-square object-cover rounded-lg"
-                      />
-                      {selectedMediaIds.includes(media.id) && (
-                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center rounded-lg">
-                          <CheckCircle2 className="w-6 h-6 text-primary drop-shadow-md fill-white" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <TooltipProvider>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[400px] overflow-y-auto p-1">
+                    {mediaListData.media.map(media => {
+                      const isAnalyzing = media.status === 'pending' || media.status === 'uploading'
+                      const isFailed = media.status === 'failed'
+                      const isCompleted = media.status === 'completed'
+
+                      return (
+                        <Tooltip key={media.id}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={`relative group transition-all ${
+                                selectedMediaIds.includes(media.id)
+                                  ? 'ring-2 ring-primary ring-offset-2'
+                                  : ''
+                              } ${isCompleted ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                              onClick={() => {
+                                if (isCompleted) {
+                                  toggleMediaId(media.id)
+                                }
+                              }}
+                              onContextMenu={e => {
+                                if (isCompleted) {
+                                  e.preventDefault()
+                                  handleMediaClick(media, e)
+                                }
+                              }}
+                            >
+                              <img
+                                src={media.url}
+                                alt="Media"
+                                className="w-full aspect-square object-cover rounded-lg"
+                              />
+                              {selectedMediaIds.includes(media.id) && (
+                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center rounded-lg">
+                                  <CheckCircle2 className="w-6 h-6 text-primary drop-shadow-md fill-white" />
+                                </div>
+                              )}
+                              {isAnalyzing && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                                  <div className="text-white text-xs text-center px-2">
+                                    分析中...
+                                  </div>
+                                </div>
+                              )}
+                              {isFailed && (
+                                <div className="absolute top-1 right-1">
+                                  <span className="bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded">
+                                    分析失敗
+                                  </span>
+                                </div>
+                              )}
+                              {isCompleted && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="absolute bottom-1 right-1 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                  onClick={e => handleMediaClick(media, e)}
+                                >
+                                  詳細
+                                </Button>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {isAnalyzing && '分析中です'}
+                              {isFailed && '分析に失敗しました'}
+                              {isCompleted && '右クリックで詳細を表示'}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )
+                    })}
+                  </div>
+                </TooltipProvider>
               )}
             </CardContent>
           </Card>
@@ -187,19 +257,28 @@ export default function PhotoUpload() {
               {uploadedFiles.length > 0 && (
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">新規アップロード</div>
-                  <div className="text-lg font-bold text-primary">{uploadedFiles.length} <span className="text-sm font-normal text-muted-foreground">枚</span></div>
+                  <div className="text-lg font-bold text-primary">
+                    {uploadedFiles.length}{' '}
+                    <span className="text-sm font-normal text-muted-foreground">枚</span>
+                  </div>
                 </div>
               )}
               {selectedMediaIds.length > 0 && (
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">ライブラリから選択</div>
-                  <div className="text-lg font-bold text-primary">{selectedMediaIds.length} <span className="text-sm font-normal text-muted-foreground">枚</span></div>
+                  <div className="text-lg font-bold text-primary">
+                    {selectedMediaIds.length}{' '}
+                    <span className="text-sm font-normal text-muted-foreground">枚</span>
+                  </div>
                 </div>
               )}
             </div>
             <div className="text-right">
               <div className="text-xs text-muted-foreground mb-1">合計</div>
-              <div className="text-lg font-bold text-primary">{uploadedFiles.length + selectedMediaIds.length} <span className="text-sm font-normal text-muted-foreground">枚</span></div>
+              <div className="text-lg font-bold text-primary">
+                {uploadedFiles.length + selectedMediaIds.length}{' '}
+                <span className="text-sm font-normal text-muted-foreground">枚</span>
+              </div>
             </div>
           </div>
         </div>
@@ -207,10 +286,11 @@ export default function PhotoUpload() {
 
       {/* Uploaded Files Preview (新規アップロード分のみ表示) */}
       {uploadedFiles.length > 0 && (
-        <div className="space-y-1 md:space-y-2">
+        <div className="space-y-4">
           <h4 className="font-semibold text-sm md:text-base">
             新規アップロード写真 ({uploadedFiles.length}枚)
           </h4>
+
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 md:gap-2 max-h-36 md:max-h-48 overflow-y-auto p-1 md:p-2 border rounded-lg">
             {uploadedFiles.map((file, index) => (
               <div key={index} className="relative group">
@@ -232,6 +312,21 @@ export default function PhotoUpload() {
           </div>
         </div>
       )}
+
+      {/* Analytics Dialog */}
+      <MediaAnalyticsDialog
+        media={selectedMedia}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+      />
     </div>
+  )
+}
+
+export default function PhotoUpload() {
+  return (
+    <Suspense fallback={<div>読み込み中...</div>}>
+      <PhotoUploadInner />
+    </Suspense>
   )
 }

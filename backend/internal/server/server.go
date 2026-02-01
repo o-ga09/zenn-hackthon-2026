@@ -22,13 +22,14 @@ import (
 )
 
 type Server struct {
-	Port   string
-	Engine *echo.Echo
-	User   handler.IUserServer
-	Auth   handler.IAuthServer
-	Image  handler.IImageServer
-	VLog   handler.IVLogServer
-	Agent  handler.IAgentServer
+	Port         string
+	Engine       *echo.Echo
+	User         handler.IUserServer
+	Auth         handler.IAuthServer
+	Image        handler.IImageServer
+	VLog         handler.IVLogServer
+	Agent        handler.IAgentServer
+	Notification handler.INotificationHandler
 }
 
 func New(ctx context.Context) *Server {
@@ -40,7 +41,7 @@ func New(ctx context.Context) *Server {
 	}
 	userHandler := handler.NewUserServer(&mysql.UserRepository{}, r2Storage)
 	authHandler := handler.NewAuthServer(&mysql.UserRepository{}, r2Storage)
-	imageHandler := handler.NewImageServer(&mysql.MediaRepository{}, r2Storage)
+	imageHandler := handler.NewImageServer(&mysql.MediaRepository{}, r2Storage, &mysql.MediaAnalyticsRepository{})
 	vlogHandler := handler.NewVLogServer(&mysql.VLogRepository{})
 
 	// GCSクライアントの初期化
@@ -76,7 +77,9 @@ func New(ctx context.Context) *Server {
 	)
 	vlogRepo := &mysql.VLogRepository{}
 	mediaRepo := &mysql.MediaRepository{}
-	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, mediaRepo, mediaAnalyticsRepo, taskClient, txManager)
+	notificationRepo := &mysql.NotificationRepository{}
+	agentHandler := handler.NewAgentServer(ctx, r2Storage, genkitAgent, vlogRepo, mediaRepo, mediaAnalyticsRepo, taskClient, txManager, notificationRepo)
+	notificationHandler := handler.NewNotificationHandler(notificationRepo)
 
 	// Echoインスタンス作成
 	e := echo.New()
@@ -84,13 +87,14 @@ func New(ctx context.Context) *Server {
 	e.Binder = NewCustomBinder()
 
 	return &Server{
-		Port:   "8080",
-		Engine: e,
-		User:   userHandler,
-		Auth:   authHandler,
-		Image:  imageHandler,
-		VLog:   vlogHandler,
-		Agent:  agentHandler,
+		Port:         "8080",
+		Engine:       e,
+		User:         userHandler,
+		Auth:         authHandler,
+		Image:        imageHandler,
+		VLog:         vlogHandler,
+		Agent:        agentHandler,
+		Notification: notificationHandler,
 	}
 }
 

@@ -1,20 +1,27 @@
-import { Users } from 'lucide-react'
+'use client'
+
+import { Users, Check, Trash2 } from 'lucide-react'
 import React from 'react'
 import { Button } from '../ui/button'
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
 import { useAuth } from '@/context/authContext'
+import { useNotifications } from '@/context/notificationContext'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '../ui/dropdown-menu'
+import { Badge } from '../ui/badge'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 export default function CommonHeader() {
   const { user, logout } = useAuth()
+  const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } =
+    useNotifications()
   const router = useRouter()
 
   console.log('Current User in Header:', user)
@@ -56,9 +63,114 @@ export default function CommonHeader() {
           </nav>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          {/* 通知ベル */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-[320px] max-h-[400px] overflow-y-auto bg-white shadow-lg z-50"
+            >
+              <div className="flex items-center justify-between p-3 border-b">
+                <h3 className="font-semibold text-sm">通知</h3>
+                <div className="flex gap-1">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={markAllAsRead}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      すべて既読
+                    </Button>
+                  )}
+                  {notifications.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
+                      onClick={clearAll}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      すべて削除
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  通知はありません
+                </div>
+              ) : (
+                notifications.map(notification => (
+                  <div key={notification.id}>
+                    <DropdownMenuItem
+                      className={`flex flex-col items-start p-3 cursor-pointer focus:bg-gray-50 ${
+                        !notification.read ? 'bg-blue-50/50' : ''
+                      }`}
+                      onClick={() => markAsRead(notification.id)}
+                    >
+                      <div className="flex items-start justify-between w-full">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className={`text-xs font-semibold ${
+                                notification.type === 'success'
+                                  ? 'text-green-600'
+                                  : notification.type === 'error'
+                                    ? 'text-red-600'
+                                    : 'text-blue-600'
+                              }`}
+                            >
+                              {notification.title}
+                            </span>
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 break-words">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(notification.timestamp).toLocaleTimeString('ja-JP', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 ml-2 text-gray-400 hover:text-red-500"
+                          onClick={e => {
+                            e.stopPropagation()
+                            removeNotification(notification.id)
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </div>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {user ? (
             <>
               <Link href="/dashboard">

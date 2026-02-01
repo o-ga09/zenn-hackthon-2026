@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"cloud.google.com/go/storage"
 	"github.com/firebase/genkit/go/ai"
@@ -14,6 +15,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/retry"
 )
 
 // GenkitAgent はGenkit AIエージェントの実装
@@ -179,68 +181,103 @@ func (ga *GenkitAgent) CreateVlogWithProgress(ctx context.Context, input *agent.
 	return output, nil
 }
 
-// AnalyzeMediaBatch は複数のメディアを分析する
+// AnalyzeMediaBatch は複数のメディアを分析する（並列処理 + リトライ対応）
 func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.MediaAnalysisBatchInput) (*agent.MediaAnalysisBatchOutput, error) {
 	// FlowContextをコンテキストに設定
 	ctx = WithFlowContext(ctx, ga.flowContext)
 
-	// 各メディアを分析
-	results := make([]agent.MediaAnalysisOutput, 0, len(input.Items))
-	successfulItems := 0
-	failedItems := 0
+	var (
+		wg               sync.WaitGroup
+		mu               sync.Mutex
+		results          []agent.MediaAnalysisOutput
+		successfulItems  int
+		failedItems      int
+		locationMap      = make(map[string]bool)
+		activityMap      = make(map[string]bool)
+	)
 
-	locationMap := make(map[string]bool)
-	activityMap := make(map[string]bool)
+	// 並列実行数制限（5並列）
+	semaphore := make(chan struct{}, 5)
 
+	// 各メディアを並列に分析
 	for _, item := range input.Items {
-		outputRaw, err := ga.tools.AnalyzeMedia.RunRaw(ctx, item)
-		if err != nil {
-			logger.Warn(ctx, fmt.Sprintf("FileID: %s, URL: %s", item.FileID, item.URL), "error", err.Error())
-			failedItems++
-			continue
-		}
-		output, err := convertToStruct[agent.MediaAnalysisOutput](outputRaw)
-		if err != nil {
-			logger.Warn(ctx, fmt.Sprintf("FileID: %s, URL: %s", item.FileID, item.URL), "error", "conversion failed: "+err.Error())
-			failedItems++
-			continue
-		}
-		results = append(results, output)
-		successfulItems++
+		wg.Add(1)
 
-		// DBに保存
-		if ga.flowContext.MediaAnalyticsRepo != nil {
-			analytics := &domain.MediaAnalytics{
-				FileID:      output.FileID,
-				Description: output.Description,
-				Objects:     make([]domain.DetectedObject, len(output.Objects)),
-				Landmarks:   make([]domain.Landmark, len(output.Landmarks)),
-				Activities:  make([]domain.Activity, len(output.Activities)),
-				Mood:        output.Mood,
-			}
-			for i, o := range output.Objects {
-				analytics.Objects[i] = domain.DetectedObject{Name: o}
-			}
-			for i, l := range output.Landmarks {
-				analytics.Landmarks[i] = domain.Landmark{Name: l}
-			}
-			for i, a := range output.Activities {
-				analytics.Activities[i] = domain.Activity{Name: a}
+		go func(item agent.MediaAnalysisInput) {
+			defer wg.Done()
+
+			// セマフォ取得
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// リトライ付き分析実行
+			var output agent.MediaAnalysisOutput
+			err := retry.Do(ctx, retry.DefaultConfig, func() error {
+				outputRaw, analyzeErr := ga.tools.AnalyzeMedia.RunRaw(ctx, item)
+				if analyzeErr != nil {
+					logger.Warn(ctx, "分析リトライ中", "FileID", item.FileID, "error", analyzeErr.Error())
+					return analyzeErr
+				}
+
+				convertedOutput, convertErr := convertToStruct[agent.MediaAnalysisOutput](outputRaw)
+				if convertErr != nil {
+					logger.Warn(ctx, "変換リトライ中", "FileID", item.FileID, "error", convertErr.Error())
+					return convertErr
+				}
+
+				output = convertedOutput
+				return nil
+			})
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			if err != nil {
+				logger.Error(ctx, "全リトライ失敗", "FileID", item.FileID, "URL", item.URL, "error", err.Error())
+				failedItems++
+				return
 			}
 
-			if err := ga.flowContext.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
-				logger.Warn(ctx, fmt.Sprintf("failed to save media analytics for file %s: %v", output.FileID, err))
-				return nil, err
-			}
-		}
+			results = append(results, output)
+			successfulItems++
 
-		for _, l := range output.Landmarks {
-			locationMap[l] = true
-		}
-		for _, a := range output.Activities {
-			activityMap[a] = true
-		}
+			// DBに保存
+			if ga.flowContext.MediaAnalyticsRepo != nil {
+				analytics := &domain.MediaAnalytics{
+					FileID:      output.FileID,
+					Description: output.Description,
+					Objects:     make([]domain.DetectedObject, len(output.Objects)),
+					Landmarks:   make([]domain.Landmark, len(output.Landmarks)),
+					Activities:  make([]domain.Activity, len(output.Activities)),
+					Mood:        output.Mood,
+				}
+				for i, o := range output.Objects {
+					analytics.Objects[i] = domain.DetectedObject{Name: o}
+				}
+				for i, l := range output.Landmarks {
+					analytics.Landmarks[i] = domain.Landmark{Name: l}
+				}
+				for i, a := range output.Activities {
+					analytics.Activities[i] = domain.Activity{Name: a}
+				}
+
+				if err := ga.flowContext.MediaAnalyticsRepo.Save(ctx, analytics); err != nil {
+					logger.Warn(ctx, "分析結果の保存失敗", "FileID", output.FileID, "error", err.Error())
+					// DB保存失敗は致命的ではないので処理を継続
+				}
+			}
+
+			for _, l := range output.Landmarks {
+				locationMap[l] = true
+			}
+			for _, a := range output.Activities {
+				activityMap[a] = true
+			}
+		}(item)
 	}
+
+	// 全てのGoroutineの完了を待つ
+	wg.Wait()
 
 	uniqueLocations := make([]string, 0, len(locationMap))
 	for l := range locationMap {

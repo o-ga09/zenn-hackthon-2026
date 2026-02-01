@@ -4,6 +4,7 @@ import NextTopLoader from 'nextjs-toploader'
 import { topLoaderConfig } from '@/lib/utils'
 import { ApiProvider } from '@/api/apiProvider'
 import { AuthProvider } from '@/context/authContext'
+import { NotificationProvider } from '@/context/notificationContext'
 import { Toaster } from '@/components/ui/sonner'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -87,9 +88,11 @@ export default function RootLayout({
       <body className="overflow-x-hidden" suppressHydrationWarning>
         <ApiProvider>
           <AuthProvider>
-            <NextTopLoader {...topLoaderConfig} />
-            {children}
-            <Toaster />
+            <NotificationProvider>
+              <NextTopLoader {...topLoaderConfig} />
+              {children}
+              <Toaster />
+            </NotificationProvider>
           </AuthProvider>
         </ApiProvider>
       </body>

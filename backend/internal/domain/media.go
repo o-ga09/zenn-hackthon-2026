@@ -1,12 +1,37 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"reflect"
+)
+
+// MediaStatus はメディアの処理状態を表す
+type MediaStatus string
+
+func (m MediaStatus) Equals(b MediaStatus) bool {
+	return reflect.DeepEqual(m, b)
+}
+
+func (m MediaStatus) String() string {
+	return string(m)
+}
+
+const (
+	MediaStatusPending   MediaStatus = "pending"   // アップロード待機中
+	MediaStatusUploading MediaStatus = "uploading" // アップロード中
+	MediaStatusCompleted MediaStatus = "completed" // アップロード完了
+	MediaStatusFailed    MediaStatus = "failed"    // アップロード失敗
+)
 
 type Media struct {
 	BaseModel
-	ContentType string `gorm:"column:content_type" json:"content_type"` // MIMEタイプ
-	Size        int64  `gorm:"column:size" json:"size"`                 // ファイルサイズ（バイト単位）
-	URL         string `gorm:"column:url" json:"url"`                   // ファイルのURL
+	ContentType  string         `gorm:"column:content_type" json:"content_type"`             // MIMEタイプ
+	Size         int64          `gorm:"column:size" json:"size"`                             // ファイルサイズ（バイト単位）
+	URL          sql.NullString `gorm:"column:url" json:"url"`                               // ファイルのURL
+	Status       MediaStatus    `gorm:"column:status;default:completed" json:"status"`       // 処理状態
+	Progress     float64        `gorm:"column:progress;default:1.0" json:"progress"`         // 進捗率（0.0〜1.0）
+	ErrorMessage string         `gorm:"column:error_message" json:"error_message,omitempty"` // エラーメッセージ
 }
 
 type IMediaRepository interface {

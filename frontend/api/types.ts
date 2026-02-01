@@ -98,6 +98,9 @@ export interface Media {
   size: number // ファイルサイズ（バイト単位）
   url: string // ファイルのURL
   image_data?: string // 画像データ（typeがimageの場合に存在）
+  status: 'pending' | 'uploading' | 'completed' | 'failed' // アップロード状態
+  progress: number // 進捗率（0.0〜1.0）
+  error_message?: string // エラーメッセージ
   created_at: string
   updated_at: string
 }
@@ -130,4 +133,38 @@ export interface MediaAnalysisBatchResponse {
     uniqueActivities: string[]
     overallMood: string
   }
+}
+
+// メディア分析レスポンスの型定義
+export interface AnalyzeMediaResponse {
+  media_ids: string[]
+  status: string
+}
+
+// メディア分析SSEレスポンスの型定義
+export interface MediaStatusResponse {
+  medias: Media[]
+  total_items: number
+  completed_items: number
+  failed_items: number
+  all_completed: boolean
+}
+
+// メディア分析結果の型定義
+export interface MediaAnalyticsResponse {
+  file_id: string
+  description: string
+  mood: string
+  objects: string[]
+  landmarks: string[]
+  activities: string[]
+}
+
+// メディア分析結果更新リクエストの型定義
+export interface UpdateMediaAnalyticsRequest {
+  description?: string
+  mood?: string
+  objects?: string[]
+  landmarks?: string[]
+  activities?: string[]
 }
