@@ -22,6 +22,11 @@ type GetByIDParam struct {
 	ID string `param:"id" validate:"required" ja:"ユーザーID"`
 }
 
+// GetByNameParam 名前でユーザー取得のパスパラメータ
+type GetByNameParam struct {
+	Name string `query:"name" validate:"required" ja:"ユーザー名"`
+}
+
 // GetByUIDQuery UIDでユーザー取得のクエリパラメータ
 type GetByUIDQuery struct {
 	UID string `query:"uid" validate:"required,min=1,max=255"`

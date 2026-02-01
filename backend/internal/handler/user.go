@@ -20,6 +20,7 @@ type IUserServer interface {
 	List(c echo.Context) error
 	GetByID(c echo.Context) error
 	GetByUID(c echo.Context) error
+	GetByName(c echo.Context) error
 	Create(c echo.Context) error
 	Update(c echo.Context) error
 	Delete(c echo.Context) error
@@ -70,7 +71,6 @@ func (s *UserServer) List(c echo.Context) error {
 func (s *UserServer) GetByID(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// パスパラメータのバインドとバリデーション
 	var param request.GetByIDParam
 	if err := c.Bind(&param); err != nil {
 		return errors.Wrap(ctx, err)
@@ -98,11 +98,40 @@ func (s *UserServer) GetByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, response.ToResponse(user))
 }
 
+func (s *UserServer) GetByName(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var param request.GetByNameParam
+	if err := c.Bind(&param); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	if err := c.Validate(&param); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	user, err := s.repo.FindByName(ctx, &domain.User{Name: param.Name})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.MakeNotFoundError(ctx, "User not found")
+		}
+		return errors.Wrap(ctx, err)
+	}
+
+	if user.ProfileImage.Valid && !strings.HasPrefix(user.ProfileImage.String, "https://") {
+		user.ProfileImage.String, err = s.storage.Get(ctx, user.ProfileImage.String)
+		if err != nil {
+			return errors.Wrap(ctx, err)
+		}
+	}
+
+	return c.JSON(http.StatusOK, response.ToResponse(user))
+}
+
 // GetByUID Firebase UIDでユーザー取得
 func (s *UserServer) GetByUID(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// クエリパラメータのバインドとバリデーション
 	var query request.GetByUIDQuery
 	if err := c.Bind(&query); err != nil {
 		return errors.Wrap(ctx, err)
@@ -136,7 +165,6 @@ func (s *UserServer) Create(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	// バリデーション
 	if err := c.Validate(&req); err != nil {
 		return errors.Wrap(ctx, err)
 	}
@@ -201,7 +229,7 @@ func (s *UserServer) Update(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	if updateUser.ProfileImage.Valid {
+	if updateUser.ProfileImage.Valid && !strings.HasPrefix(updateUser.ProfileImage.String, "https://") {
 		updateUser.ProfileImage.String, err = s.storage.Get(ctx, updateUser.ProfileImage.String)
 		if err != nil {
 			return errors.Wrap(ctx, err)

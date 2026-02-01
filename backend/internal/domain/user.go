@@ -28,6 +28,8 @@ type IUserRepository interface {
 	Create(ctx context.Context, user *User) error
 	// FindByID IDでユーザーを検索
 	FindByID(ctx context.Context, cond *User) (*User, error)
+	// FindByName 名前でユーザーを検索
+	FindByName(ctx context.Context, cond *User) (*User, error)
 	// FindByUID Firebase UIDでユーザーを検索
 	FindByUID(ctx context.Context, cond *User) (*User, error)
 	// FindAll 全ユーザーを取得

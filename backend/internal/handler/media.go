@@ -14,7 +14,6 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
 
 type IImageServer interface {
@@ -58,7 +57,7 @@ func (s *ImageServer) List(c echo.Context) error {
 			ID:          media.ID,
 			ContentType: media.ContentType,
 			Size:        media.Size,
-			URL:         fmt.Sprintf("%s/%s/%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL),
+			URL:         fmt.Sprintf("%s/%s/%s%s.%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL, media.ID, strings.Split(media.ContentType, "/")[1]),
 			ImageData:   base64Images[media.URL],
 			CreatedAt:   media.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
@@ -111,12 +110,25 @@ func (s *ImageServer) Upload(c echo.Context) error {
 		contentType = "video/x-matroska"
 	}
 
-	// ユーザーIDとファイルIDを取得
+	// ユーザーIDを取得
 	userID := context.GetCtxFromUser(ctx)
-	fileID := ulid.New()
+	key := fmt.Sprintf("media/%s/%s%s", userID)
+
+	// データベースにメタデータを保存
+	model := &domain.Media{
+		BaseModel: domain.BaseModel{
+			CreateUserID: &userID,
+		},
+		ContentType: contentType,
+		Size:        int64(len(fileData)),
+		URL:         key,
+	}
+	if err := s.imageRepo.Save(ctx, model); err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
 	// ストレージキーを生成
-	storageKey := fmt.Sprintf("media/%s/%s%s", userID, fileID, ext)
+	storageKey := fmt.Sprintf("media/%s/%s%s", userID, model.ID, ext)
 
 	// ストレージにアップロード
 	storageURL, err := s.storage.UploadFile(ctx, storageKey, fileData, contentType)
@@ -124,31 +136,10 @@ func (s *ImageServer) Upload(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	// メディアタイプを判定 (image or video)
-	mediaType := "image"
-	if strings.HasPrefix(contentType, "video/") {
-		mediaType = "video"
-	}
-
-	// データベースにメタデータを保存
-	model := &domain.Media{
-		BaseModel: domain.BaseModel{
-			ID:           fileID,
-			CreateUserID: &userID,
-		},
-		ContentType: contentType,
-		Type:        mediaType,
-		Size:        int64(len(fileData)),
-		URL:         storageURL,
-	}
-	if err := s.imageRepo.Save(ctx, model); err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
 	// レスポンスを返す
 	return c.JSON(http.StatusOK, response.MediaImageUploadResponse{
 		ID:  model.ID,
-		URL: model.URL,
+		URL: storageURL,
 	})
 }
 

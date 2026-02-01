@@ -4,7 +4,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import UserProfile from './_components/UserProfile'
 import TravelMemoryCard from './_components/TravelMemoryCard'
 import { useParams } from 'next/navigation'
-import { useGetUserById, useGetUserPhotoCount } from '@/api/user'
+import { useGetUserByName, useGetUserPhotoCount } from '@/api/user'
 import { useGetTravelsByUserId } from '@/api/travelApi'
 import { useAuth } from '@/context/authContext'
 import { TravelMemory } from '@/api/extendedTypes'
@@ -15,7 +15,7 @@ export default function UserProfilePage() {
   const { user: currentUser } = useAuth()
 
   // 対象ユーザーの情報を取得
-  const { data: profileUser, isLoading: isLoadingProfile } = useGetUserById(targetUserId)
+  const { data: profileUser, isLoading: isLoadingProfile } = useGetUserByName(targetUserId)
   // アップロード数の取得
   const { data: photoCount } = useGetUserPhotoCount(targetUserId)
 
@@ -23,15 +23,16 @@ export default function UserProfilePage() {
   const { data: travelsData, isLoading: isLoadingMemories } = useGetTravelsByUserId(targetUserId)
 
   // 取得した旅行データを TravelMemory 形式に変換
-  const memories: TravelMemory[] = travelsData?.travels.map(travel => ({
-    id: travel.id,
-    title: travel.title,
-    location: "旅の思い出", // 既存データに場所情報がないためのプレースホルダー
-    date: new Date(travel.startDate).toLocaleDateString('ja-JP'),
-    thumbnailUrl: travel.thumbnail || '/placeholder.webp',
-    likes: Math.floor(Math.random() * 10), // 本来はAPIから取得するが、現状はダミー
-    description: travel.description,
-  })) || []
+  const memories: TravelMemory[] =
+    travelsData?.travels.map(travel => ({
+      id: travel.id,
+      title: travel.title,
+      location: '旅の思い出', // 既存データに場所情報がないためのプレースホルダー
+      date: new Date(travel.startDate).toLocaleDateString('ja-JP'),
+      thumbnailUrl: travel.thumbnail || '/placeholder.webp',
+      likes: Math.floor(Math.random() * 10), // 本来はAPIから取得するが、現状はダミー
+      description: travel.description,
+    })) || []
 
   if (isLoadingProfile) {
     return (

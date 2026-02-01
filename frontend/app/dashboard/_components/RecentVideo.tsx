@@ -27,10 +27,12 @@ export default function RecentVideo() {
   const { data: mediaListData, isLoading: isMediaLoading } = useGetMediaList()
   const { data: vlogsData, isLoading: isVlogsLoading } = useGetVlogs()
 
-  // 実際のメディアデータから素材動画を生成（最新3件のみ）
+  const [showAll, setShowAll] = useState(false)
+
+  // 実際のメディアデータから素材動画を生成（初期最新3件のみ）
   const originalMedia = (mediaListData?.media || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3)
+    .slice(0, showAll ? undefined : 3)
     .map(media => ({
       id: media.id,
       title: `${media.type === 'video' ? '動画' : '画像'}_${media.id.slice(-6)}`, // タイプに応じたタイトル
@@ -54,15 +56,18 @@ export default function RecentVideo() {
       const files = Array.from(selectedFiles)
 
       // 各ファイルの分析状態を初期化
-      const initialProgress = files.reduce((acc, file) => {
-        acc[file.name] = true
-        return acc
-      }, {} as { [key: string]: boolean })
+      const initialProgress = files.reduce(
+        (acc, file) => {
+          acc[file.name] = true
+          return acc
+        },
+        {} as { [key: string]: boolean }
+      )
       setUploadProgress(initialProgress)
 
       // すべてのファイルを一括でアップロードして分析
       toast.info(`${files.length}個のファイルのアップロードと分析を開始します...`)
-      
+
       await analyzeMutation.mutateAsync(files)
 
       toast.success(`${files.length}個のメディアファイルのアップロードと分析が完了しました。`)
@@ -76,6 +81,10 @@ export default function RecentVideo() {
       toast.error('アップロードまたは分析中にエラーが発生しました。')
       setUploadProgress({})
     }
+  }
+
+  const displayAll = () => {
+    setShowAll(true)
   }
 
   const isUploading = Object.keys(uploadProgress).length > 0
@@ -186,7 +195,12 @@ export default function RecentVideo() {
               </div>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" size="sm" className="text-xs md:text-sm h-8 px-3">
+          <Button
+            variant="outline"
+            onClick={displayAll}
+            size="sm"
+            className="text-xs md:text-sm h-8 px-3"
+          >
             すべて表示
           </Button>
         </div>

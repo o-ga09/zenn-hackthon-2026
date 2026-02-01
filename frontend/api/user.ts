@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {apiClient} from './client'
+import { apiClient } from './client'
 import z from 'zod'
 
 // キャッシュのキー
@@ -33,6 +33,18 @@ export const useGetUserById = (userId: string) => {
     },
     // ユーザーIDが空の場合はクエリを無効化
     enabled: !!userId,
+  })
+}
+
+export const useGetUserByName = (userName: string) => {
+  return useQuery({
+    queryKey: ['users', 'name', userName],
+    queryFn: async (): Promise<User> => {
+      const response = await apiClient.get(`/users/name?name=${userName}`)
+      return response.data
+    },
+    // ユーザー名が空の場合はクエリを無効化
+    enabled: !!userName,
   })
 }
 

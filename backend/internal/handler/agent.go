@@ -18,7 +18,6 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
 
 type IAgentServer interface {
@@ -133,7 +132,6 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 			mediaItems = append(mediaItems, agent.MediaItem{
 				FileID:      media.ID,
 				URL:         media.URL,
-				Type:        media.Type,
 				ContentType: media.ContentType,
 			})
 		}
@@ -305,28 +303,26 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 			ext = getExtensionFromContentType(contentType)
 		}
 		key := fmt.Sprintf("users/%s/uploads/", userID)
-		fileID, _ := ulid.GenerateULID()
-
-		// ストレージにアップロード
-		path := key + fileID + ext
-		url, err := s.storage.UploadFile(ctx, path, data, contentType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
-		}
 
 		// MediaレコードをDBに保存
 		media := &domain.Media{
 			BaseModel: domain.BaseModel{
-				ID:           fileID,
 				CreateUserID: &userID,
 			},
 			ContentType: contentType,
-			Type:        mediaType,
 			Size:        int64(len(data)),
-			URL:         url,
+			URL:         key,
 		}
 		if err := s.mediaRepo.Save(ctx, media); err != nil {
 			return nil, fmt.Errorf("failed to save media record: %w", err)
+		}
+
+		// ストレージにアップロード
+		path := key + media.ID + ext
+		fmt.Println("✅", media.ID, path)
+		url, err := s.storage.UploadFile(ctx, path, data, contentType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
 		}
 
 		// MediaItemを作成

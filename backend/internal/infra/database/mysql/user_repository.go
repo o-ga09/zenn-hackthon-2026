@@ -32,6 +32,15 @@ func (r *UserRepository) FindByID(ctx context.Context, cond *domain.User) (*doma
 	return &user, nil
 }
 
+// FindByName 名前でユーザーを検索
+func (r *UserRepository) FindByName(ctx context.Context, cond *domain.User) (*domain.User, error) {
+	var user *domain.User
+	if err := Ctx.GetDB(ctx).First(&user, cond).Error; err != nil {
+		return nil, errors.Wrap(ctx, err)
+	}
+	return user, nil
+}
+
 // FindByUID Firebase UIDでユーザーを検索
 func (r *UserRepository) FindByUID(ctx context.Context, cond *domain.User) (*domain.User, error) {
 	var user domain.User

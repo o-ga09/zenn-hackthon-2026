@@ -13,11 +13,12 @@ func (s *Server) SetupApplicationRoute() {
 	// ユーザー管理API
 	users := apiRoot.Group("/users", AuthMiddleware())
 	{
-		users.GET("", s.User.List)          // ユーザー一覧取得
-		users.GET("/:id", s.User.GetByID)   // IDでユーザー取得
-		users.POST("", s.User.Create)       // ユーザー作成
-		users.PUT("/:id", s.User.Update)    // ユーザー更新
-		users.DELETE("/:id", s.User.Delete) // ユーザー削除
+		users.GET("", s.User.List)           // ユーザー一覧取得
+		users.GET("/:id", s.User.GetByID)    // IDでユーザー取得
+		users.GET("/name", s.User.GetByName) // 名前でユーザー取得
+		users.POST("", s.User.Create)        // ユーザー作成
+		users.PUT("/:id", s.User.Update)     // ユーザー更新
+		users.DELETE("/:id", s.User.Delete)  // ユーザー削除
 	}
 
 	// 画像管理API
