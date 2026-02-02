@@ -1,0 +1,407 @@
+{
+  "version": "2.6",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Desktop - Home",
+      "clip": true,
+      "width": 1440,
+      "height": 3000,
+      "fill": "#FFFFFF",
+      "layout": "none",
+      "children": [
+        {
+          "type": "group",
+          "name": "Header",
+          "id": "header",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 80,
+          "children": [
+            {
+              "type": "rectangle",
+              "x": 0,
+              "y": 0,
+              "width": 1440,
+              "height": 80,
+              "fill": "#FFFFFF80",
+              "stroke": "none"
+            },
+            {
+              "type": "text",
+              "x": 40,
+              "y": 24,
+              "content": "TaviNikkiy",
+              "fontSize": 24,
+              "fontFamily": "Inter, sans-serif",
+              "fill": "#000000"
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "name": "Hero Section",
+          "id": "hero",
+          "x": 0,
+          "y": 80,
+          "width": 1440,
+          "height": 800,
+          "children": [
+            {
+              "type": "text",
+              "x": 100,
+              "y": 100,
+              "content": "AI-Powered Magic",
+              "fontSize": 12,
+              "fill": "#6B7280"
+            },
+            {
+              "type": "text",
+              "x": 100,
+              "y": 140,
+              "content": "あなたの旅を、\n一生の思い出に。",
+              "fontSize": 60,
+              "lineHeight": 1.2,
+              "fontWeight": "bold",
+              "fill": "#000000"
+            },
+            {
+              "type": "text",
+              "x": 100,
+              "y": 300,
+              "content": "思い出の写真をアップロードするだけ。\nAIが最高のシーンを選び、音楽と合わせて\n15秒のVlogを瞬時に作成します。",
+              "fontSize": 18,
+              "fill": "#4B5563"
+            },
+            {
+              "type": "group",
+              "name": "Trial Card",
+              "x": 800,
+              "y": 50,
+              "width": 450,
+              "height": 600,
+              "children": [
+                {
+                  "type": "rectangle",
+                  "x": 0,
+                  "y": 0,
+                  "width": 450,
+                  "height": 600,
+                  "fill": "#FFFFFF",
+                  "stroke": "#E5E7EB",
+                  "cornerRadius": 16
+                },
+                {
+                  "type": "text",
+                  "x": 40,
+                  "y": 40,
+                  "content": "Trial Generation",
+                  "fontSize": 20,
+                  "fontWeight": "bold",
+                  "fill": "#000000"
+                },
+                {
+                  "type": "rectangle",
+                  "x": 40,
+                  "y": 80,
+                  "width": 370,
+                  "height": 200,
+                  "fill": "#F3F4F6",
+                  "stroke": "#D1D5DB",
+                  "strokeDashArray": [5, 5],
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "text",
+                  "x": 140,
+                  "y": 160,
+                  "content": "3〜5枚の写真を選択",
+                  "fontSize": 14,
+                  "fill": "#000000"
+                },
+                {
+                  "type": "rectangle",
+                  "x": 40,
+                  "y": 300,
+                  "width": 370,
+                  "height": 50,
+                  "fill": "#F3F4F6",
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "text",
+                  "x": 50,
+                  "y": 315,
+                  "content": "Destination (例: 京都, パリ...)",
+                  "fontSize": 14,
+                  "fill": "#9CA3AF"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "name": "Feature Section",
+          "id": "feature",
+          "x": 0,
+          "y": 900,
+          "width": 1440,
+          "height": 600,
+          "children": [
+            {
+              "type": "text",
+              "x": 600,
+              "y": 50,
+              "content": "Easy as 1-2-3",
+              "fontSize": 36,
+              "fontWeight": "black",
+              "fill": "#000000",
+              "align": "center"
+            },
+            {
+              "type": "text",
+              "x": 550,
+              "y": 100,
+              "content": "最新のAI技術が、あなたの代わりにストーリーを紡ぎます。",
+              "fontSize": 14,
+              "fill": "#6B7280",
+              "align": "center"
+            },
+            {
+              "type": "group",
+              "name": "Cards",
+              "x": 100,
+              "y": 200,
+              "children": [
+                 {
+                   "type": "group",
+                   "name": "Card 1",
+                   "x": 0,
+                   "y": 0,
+                   "width": 350,
+                   "children": [
+                     {
+                       "type": "rectangle",
+                       "width": 350,
+                       "height": 300,
+                       "fill": "#FFFFFF",
+                       "stroke": "#E5E7EB"
+                     },
+                     {
+                       "type": "text",
+                       "x": 20,
+                       "y": 100,
+                       "content": "Quick Upload",
+                       "fontSize": 20,
+                       "fontWeight": "bold"
+                     },
+                     {
+                       "type": "text",
+                       "x": 20,
+                       "y": 140,
+                       "content": "お気に入りの旅行写真やクリップをドラッグ＆ドロップするだけ。",
+                       "fontSize": 14,
+                       "fill": "#6B7280"
+                     }
+                   ]
+                 },
+                 {
+                   "type": "group",
+                   "name": "Card 2",
+                   "x": 400,
+                   "y": 0,
+                   "width": 350,
+                   "children": [
+                     {
+                       "type": "rectangle",
+                       "width": 350,
+                       "height": 300,
+                       "fill": "#FFFFFF",
+                       "stroke": "#E5E7EB"
+                     },
+                     {
+                       "type": "text",
+                       "x": 20,
+                       "y": 100,
+                       "content": "AI Magic Editing",
+                       "fontSize": 20,
+                       "fontWeight": "bold"
+                     },
+                     {
+                       "type": "text",
+                       "x": 20,
+                       "y": 140,
+                       "content": "AIが内容を分析し、リズムに合わせてカット割り。",
+                       "fontSize": 14,
+                       "fill": "#6B7280"
+                     }
+                   ]
+                 },
+                 {
+                   "type": "group",
+                   "name": "Card 3",
+                   "x": 800,
+                   "y": 0,
+                   "width": 350,
+                   "children": [
+                     {
+                       "type": "rectangle",
+                       "width": 350,
+                       "height": 300,
+                       "fill": "#FFFFFF",
+                       "stroke": "#E5E7EB"
+                     },
+                     {
+                       "type": "text",
+                       "x": 20,
+                       "y": 100,
+                       "content": "Instant Sharing",
+                       "fontSize": 20,
+                       "fontWeight": "bold"
+                     },
+                     {
+                       "type": "text",
+                       "x": 20,
+                       "y": 140,
+                       "content": "出来上がったVlogをワンタップで書き出し。",
+                       "fontSize": 14,
+                       "fill": "#6B7280"
+                     }
+                   ]
+                 }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "name": "Pricing Section",
+          "id": "pricing",
+          "x": 0,
+          "y": 1600,
+          "width": 1440,
+          "height": 600,
+          "children": [
+             {
+               "type": "text",
+               "x": 600,
+               "y": 50,
+               "content": "Pricing Plans",
+               "fontSize": 36,
+               "fontWeight": "black"
+             },
+             {
+               "type": "group",
+               "name": "Plans",
+               "x": 200,
+               "y": 150,
+               "children": [
+                 {
+                   "type": "group",
+                   "name": "Free Plan",
+                   "x": 0,
+                   "y": 0,
+                   "children": [
+                      {
+                        "type": "rectangle",
+                        "width": 400,
+                        "height": 400,
+                        "fill": "#FFFFFF",
+                        "stroke": "#E5E7EB"
+                      },
+                      {
+                        "type": "text",
+                        "x": 40,
+                        "y": 40,
+                        "content": "Free Plan",
+                        "fontSize": 24,
+                        "fontWeight": "black"
+                      },
+                      {
+                        "type": "text",
+                        "x": 40,
+                        "y": 80,
+                        "content": "¥0",
+                        "fontSize": 48,
+                        "fontWeight": "black"
+                      },
+                      {
+                        "type": "text",
+                        "x": 120,
+                        "y": 100,
+                        "content": "/month",
+                        "fontSize": 16,
+                        "fill": "#6B7280"
+                      }
+                   ]
+                 },
+                 {
+                   "type": "group",
+                   "name": "Pro Plan",
+                   "x": 500,
+                   "y": 0,
+                   "children": [
+                      {
+                        "type": "rectangle",
+                        "width": 400,
+                        "height": 400,
+                        "fill": "#FFFFFF",
+                        "stroke": "#primary",
+                        "strokeWidth": 2
+                      },
+                      {
+                        "type": "text",
+                        "x": 40,
+                        "y": 40,
+                        "content": "Pro Plan",
+                        "fontSize": 24,
+                        "fontWeight": "black"
+                      },
+                      {
+                        "type": "text",
+                        "x": 40,
+                        "y": 80,
+                        "content": "¥980",
+                        "fontSize": 48,
+                        "fontWeight": "black"
+                      },
+                      {
+                        "type": "text",
+                        "x": 150,
+                        "y": 100,
+                        "content": "/month",
+                        "fontSize": 16,
+                        "fill": "#6B7280"
+                      }
+                   ]
+                 }
+               ]
+             }
+          ]
+        },
+        {
+          "type": "group",
+          "name": "Footer",
+          "id": "footer",
+          "x": 0,
+          "y": 2300,
+          "width": 1440,
+          "height": 300,
+          "children": [
+            {
+               "type": "rectangle",
+               "width": 1440,
+               "height": 300,
+               "fill": "#000000"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
