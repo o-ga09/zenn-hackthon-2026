@@ -58,6 +58,11 @@ func (p *UUIDPlugin) beforeUpdate(db *gorm.DB) {
 		// ReflectValueがスライスかどうかをチェック
 		reflectValue := db.Statement.ReflectValue
 
+		// mapの場合はスキップ（Updatesにmapが渡された場合）
+		if reflectValue.Kind() == reflect.Map {
+			return
+		}
+
 		// スライスの場合は各要素に対して値を設定
 		if reflectValue.Kind() == reflect.Slice {
 			for i := 0; i < reflectValue.Len(); i++ {
@@ -73,6 +78,14 @@ func (p *UUIDPlugin) beforeUpdate(db *gorm.DB) {
 
 // setFieldsForCreate は、作成時に必要なフィールドを設定する
 func (p *UUIDPlugin) setFieldsForCreate(db *gorm.DB, reflectValue reflect.Value) {
+	// ポインタの場合は実体を取得
+	if reflectValue.Kind() == reflect.Ptr {
+		if reflectValue.IsNil() {
+			return
+		}
+		reflectValue = reflectValue.Elem()
+	}
+
 	// IDフィールドの設定
 	if field := db.Statement.Schema.LookUpField("ID"); field != nil {
 		p.setUUIDIfEmpty(db, field, reflectValue)
@@ -80,6 +93,11 @@ func (p *UUIDPlugin) setFieldsForCreate(db *gorm.DB, reflectValue reflect.Value)
 
 	// CreateUserIDフィールドの設定
 	if field := db.Statement.Schema.LookUpField("CreateUserID"); field != nil {
+		p.setUserIDFromContext(db, field, reflectValue)
+	}
+
+	// UpdateUserIDフィールドの設定（Create時も設定）
+	if field := db.Statement.Schema.LookUpField("UpdateUserID"); field != nil {
 		p.setUserIDFromContext(db, field, reflectValue)
 	}
 
@@ -91,6 +109,14 @@ func (p *UUIDPlugin) setFieldsForCreate(db *gorm.DB, reflectValue reflect.Value)
 
 // setFieldsForUpdate は、更新時に必要なフィールドを設定する
 func (p *UUIDPlugin) setFieldsForUpdate(db *gorm.DB, reflectValue reflect.Value) {
+	// ポインタの場合は実体を取得
+	if reflectValue.Kind() == reflect.Ptr {
+		if reflectValue.IsNil() {
+			return
+		}
+		reflectValue = reflectValue.Elem()
+	}
+
 	// UpdateUserIDフィールドの設定
 	if field := db.Statement.Schema.LookUpField("UpdateUserID"); field != nil {
 		p.setUserIDFromContext(db, field, reflectValue)
@@ -178,6 +204,11 @@ func (p *OptimisticLockPlugin) beforeUpdate(db *gorm.DB) {
 			// ReflectValueがスライスかどうかをチェック
 			reflectValue := db.Statement.ReflectValue
 
+			// mapの場合はスキップ（Updatesにmapが渡された場合）
+			if reflectValue.Kind() == reflect.Map {
+				return
+			}
+
 			if reflectValue.Kind() == reflect.Slice {
 				// スライスの場合は各要素に対して処理
 				for i := 0; i < reflectValue.Len(); i++ {
@@ -212,6 +243,15 @@ func (p *OptimisticLockPlugin) afterUpdate(db *gorm.DB) {
 
 // addOptimisticLockCondition は、楽観ロックチェック用のWHERE条件を追加し、バージョンをインクリメントする
 func (p *OptimisticLockPlugin) addOptimisticLockCondition(db *gorm.DB, field *schema.Field, reflectValue reflect.Value) {
+	// ポインタの場合は実体を取得
+	if reflectValue.Kind() == reflect.Ptr {
+		if reflectValue.IsNil() {
+			db.AddError(errors.ErrVersionNotFound)
+			return
+		}
+		reflectValue = reflectValue.Elem()
+	}
+
 	// 現在のVersionフィールドの値を取得
 	fieldValue, _ := field.ValueOf(db.Statement.Context, reflectValue)
 

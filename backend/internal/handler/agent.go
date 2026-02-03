@@ -150,9 +150,16 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 
 	cfg := config.GetCtxEnv(ctx)
 	if cfg.Env == "local" {
+		// 新しいバックグラウンドコンテキストを作成
+		bgCtx := context.Background()
+		bgCtx = Ctx.SetConfig(bgCtx, cfg)
+		bgCtx = Ctx.SetCtxFromUser(bgCtx, userIDStr)
+		bgCtx = Ctx.SetRequestTime(bgCtx, time.Now())
+		bgCtx = Ctx.SetDB(bgCtx, Ctx.GetDB(ctx))
+
 		go func() {
 			// ローカル環境ではGoroutineで直接実行
-			if err := s.executeVLogGeneration(ctx, payload); err != nil {
+			if err := s.executeVLogGeneration(bgCtx, payload); err != nil {
 				// エラーはログに出力（DBなどのステータスはexecuteVLogGeneration内で更新済み）
 				fmt.Printf("Local VLog generation failed: %v\n", err)
 			}
@@ -361,12 +368,8 @@ func (s *AgentServer) AnalyzeMedia(c echo.Context) error {
 	}
 
 	// ファイルを取得
-	files := req.Files
-	if len(files) == 0 {
-		return errors.MakeBusinessError(ctx, "No files uploaded for analysis")
-	}
-
 	// 各ファイルのMediaレコードをPENDING状態で作成
+	files := req.Files
 	mediaIDs := make([]string, len(files))
 	for i, fileHeader := range files {
 		contentType := fileHeader.Header.Get("Content-Type")
@@ -386,6 +389,7 @@ func (s *AgentServer) AnalyzeMedia(c echo.Context) error {
 	env := config.GetCtxEnv(ctx)
 	if env.Env == "local" {
 		bgCtx := context.Background()
+		bgCtx = Ctx.SetConfig(bgCtx, env)
 		bgCtx = Ctx.SetCtxFromUser(bgCtx, userIDStr)
 		bgCtx = Ctx.SetRequestTime(bgCtx, time.Now())
 		bgCtx = Ctx.SetDB(bgCtx, Ctx.GetDB(ctx))

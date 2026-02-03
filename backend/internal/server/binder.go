@@ -1,6 +1,7 @@
 package server
 
 import (
+	"mime/multipart"
 	"reflect"
 	"strings"
 
@@ -169,15 +170,42 @@ func (cb *CustomBinder) bindFormParams(i interface{}, c echo.Context) error {
 			continue
 		}
 
-		// フォームパラメータから値を取得
-		formValue := c.FormValue(formName)
-		if formValue == "" {
-			continue
-		}
-
-		// フィールドに値を設定
-		if fieldValue.CanSet() && fieldValue.Kind() == reflect.String {
-			fieldValue.SetString(formValue)
+		// フィールドの型に応じて処理を分岐
+		switch fieldValue.Kind() {
+		case reflect.Ptr:
+			// *multipart.FileHeader の場合
+			if fieldValue.Type() == reflect.TypeOf((*multipart.FileHeader)(nil)) {
+				file, err := c.FormFile(formName)
+				if err != nil {
+					// ファイルが存在しない場合はスキップ
+					continue
+				}
+				if fieldValue.CanSet() {
+					fieldValue.Set(reflect.ValueOf(file))
+				}
+			}
+		case reflect.Slice:
+			// []*multipart.FileHeader の場合
+			if fieldValue.Type() == reflect.TypeOf([]*multipart.FileHeader{}) {
+				form, err := c.MultipartForm()
+				if err != nil {
+					continue
+				}
+				if files, exists := form.File[formName]; exists && len(files) > 0 {
+					if fieldValue.CanSet() {
+						fieldValue.Set(reflect.ValueOf(files))
+					}
+				}
+			}
+		case reflect.String:
+			// 文字列フィールドの場合（従来の処理）
+			formValue := c.FormValue(formName)
+			if formValue == "" {
+				continue
+			}
+			if fieldValue.CanSet() {
+				fieldValue.SetString(formValue)
+			}
 		}
 	}
 

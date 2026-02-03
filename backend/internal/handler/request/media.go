@@ -4,7 +4,7 @@ import "mime/multipart"
 
 // multipart/form-dataに対応したメディアアップロードリクエスト
 type MediaUploadRequest struct {
-	File *multipart.FileHeader `form:"file" validate:"required"` // アップロードされるファイル
+	File []*multipart.FileHeader `form:"file" validate:"required,dive"` // アップロードされるファイル
 }
 
 type MediaGetRequest struct {

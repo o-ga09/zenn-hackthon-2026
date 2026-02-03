@@ -153,13 +153,13 @@ func (s *AuthServer) GetUser(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	// AuthMiddlewareでセットされたUIDを取得
-	uid := Ctx.GetCtxFromUser(ctx)
-	if uid == "" {
+	id := Ctx.GetCtxFromUser(ctx)
+	if id == "" {
 		return errors.MakeBusinessError(ctx, "認証されていません")
 	}
 
-	// UIDでユーザーを取得
-	user, err := s.repo.FindByUID(ctx, &domain.User{UID: uid})
+	// IDでユーザーを取得
+	user, err := s.repo.FindByUID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: id}})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.MakeNotFoundError(ctx, "ユーザーが見つかりません")

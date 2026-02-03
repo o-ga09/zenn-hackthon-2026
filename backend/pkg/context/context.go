@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"gorm.io/gorm"
 )
 
@@ -58,4 +59,8 @@ func GetDB(ctx context.Context) *gorm.DB {
 
 func SetRequestTime(ctx context.Context, time time.Time) context.Context {
 	return context.WithValue(ctx, "requestTime", time)
+}
+
+func SetConfig(ctx context.Context, cfg *config.Config) context.Context {
+	return context.WithValue(ctx, config.CtxEnvKey, cfg)
 }

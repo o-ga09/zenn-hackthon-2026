@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/database/mysql"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/constant"
@@ -119,7 +120,12 @@ func AuthMiddleware() echo.MiddlewareFunc {
 			}
 
 			ctx = c.Request().Context()
-			ctx = Ctx.SetCtxFromUser(ctx, sessionToken.UID)
+			var user domain.User
+			if err := Ctx.GetDB(ctx).First(&user, &domain.User{UID: sessionToken.UID}).Error; err != nil {
+				fmt.Println("✅", err)
+				return errors.MakeAuthorizationError(ctx, "ユーザー情報の取得に失敗しました")
+			}
+			ctx = Ctx.SetCtxFromUser(ctx, user.ID)
 			c.SetRequest(c.Request().WithContext(ctx))
 			return next(c)
 		}
