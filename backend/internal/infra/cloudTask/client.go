@@ -73,8 +73,3 @@ func (c *CloudTaskClient) Enqueue(ctx context.Context, task *queue.Task) error {
 
 	return nil
 }
-
-func (c *CloudTaskClient) Dequeue(ctx context.Context) (*queue.Task, error) {
-	// TODO: 実装する
-	return nil, nil
-}

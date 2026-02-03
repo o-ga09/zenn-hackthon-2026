@@ -5,6 +5,8 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	pkgerrors "github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
@@ -40,15 +42,16 @@ func DefineUploadMediaTool(g *genkit.Genkit) ai.Tool {
 				return UploadMediaOutput{}, pkgerrors.ErrStorageNotInitialized
 			}
 
-			url, err := fc.Storage.UploadFile(ctx, input.Key, input.Data, input.ContentType)
+			objectKey, err := fc.Storage.UploadFile(ctx, input.Key, input.Data, input.ContentType)
 			if err != nil {
 				return UploadMediaOutput{
 					Success: false,
 				}, fmt.Errorf("%w: %v", pkgerrors.ErrToolExecutionFailed, err)
 			}
 
+			env := config.GetCtxEnv(ctx)
 			return UploadMediaOutput{
-				URL:     url,
+				URL:     storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
 				Key:     input.Key,
 				Success: true,
 			}, nil

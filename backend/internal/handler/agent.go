@@ -16,6 +16,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/request"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/response"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/queue"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/constant"
@@ -29,7 +30,7 @@ import (
 type IAgentServer interface {
 	CreateVLog(echo.Context) error
 	AnalyzeMedia(echo.Context) error
-	StreamAnalysisStatus(echo.Context) error // SSEエンドポイント
+	StreamAnalysisStatus(echo.Context) error
 	ProcessVLogTask(echo.Context) error
 }
 
@@ -312,9 +313,10 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 			return nil, fmt.Errorf("failed to save media record: %w", err)
 		}
 
+		env := config.GetCtxEnv(ctx)
 		// ストレージにアップロード
 		path := key + media.ID + ext
-		url, err := s.storage.UploadFile(ctx, path, data, contentType)
+		objectKey, err := s.storage.UploadFile(ctx, path, data, contentType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
 		}
@@ -322,7 +324,7 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 		// MediaItemを作成
 		mediaItems = append(mediaItems, agent.MediaItem{
 			FileID:      media.ID,
-			URL:         url,
+			URL:         storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
 			Type:        mediaType,
 			ContentType: contentType,
 			Order:       i + 1,
@@ -449,7 +451,7 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 		}
 		key := fmt.Sprintf("users/%s/uploads/%s%s", userID, mediaID, ext)
 
-		url, err := s.storage.UploadFile(ctx, key, data, contentType)
+		objectKey, err := s.storage.UploadFile(ctx, key, data, contentType)
 		if err != nil {
 			media.Status = domain.MediaStatusFailed
 			media.ErrorMessage = fmt.Sprintf("Failed to upload: %v", err)
@@ -463,9 +465,10 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 		if err := s.mediaRepo.Save(ctx, media); err != nil {
 		}
 
+		env := config.GetCtxEnv(ctx)
 		mediaItems = append(mediaItems, agent.MediaItem{
 			FileID:      mediaID,
-			URL:         url,
+			URL:         storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
 			Type:        detectMediaType(contentType),
 			ContentType: contentType,
 			Order:       i + 1,

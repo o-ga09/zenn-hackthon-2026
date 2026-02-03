@@ -10,6 +10,8 @@ import (
 	"cloud.google.com/go/storage"
 	"google.golang.org/genai"
 
+	pkgStorage "github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
+	pkgConfig "github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	pkgerrors "github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
@@ -87,23 +89,16 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 	// Veoポーリング用に独立したコンテキストを使用
 	veoCtx := context.Background()
 
-	fmt.Printf("[Veo] Starting video generation with prompt: %s\n", config.Prompt[:min(100, len(config.Prompt))])
-	fmt.Printf("[Veo] Output path: %s\n", gcsOutputPath)
-
 	for !op.Done {
 		if time.Since(startTime) > maxWait {
 			return nil, fmt.Errorf("video generation timed out after %v", maxWait)
 		}
-		elapsed := time.Since(startTime).Seconds()
-		fmt.Printf("[Veo] Polling... (%.0fs elapsed)\n", elapsed)
 		time.Sleep(pollInterval)
 		op, err = fc.GenAI.Operations.GetVideosOperation(veoCtx, op, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get operation status: %w", err)
 		}
 	}
-
-	fmt.Printf("[Veo] Operation completed. Done=%v\n", op.Done)
 
 	// オペレーション全体をデバッグ出力
 	fmt.Printf("[Veo] Operation Name: %s\n", op.Name)
@@ -113,11 +108,8 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 
 	// エラーチェック
 	if op.Response == nil {
-		fmt.Printf("[Veo] Response is nil\n")
 		return nil, fmt.Errorf("no response from Veo API")
 	}
-
-	fmt.Printf("[Veo] Response received. GeneratedVideos count: %d\n", len(op.Response.GeneratedVideos))
 
 	if len(op.Response.GeneratedVideos) == 0 {
 		// エラー詳細を出力
@@ -135,7 +127,7 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 
 	// R2にアップロード
 	r2Key := fmt.Sprintf("users/%s/vlogs/%s.mp4", config.UserID, videoID)
-	r2URL, err := fc.Storage.UploadFile(ctx, r2Key, videoData, "video/mp4")
+	objectKey, err := fc.Storage.UploadFile(ctx, r2Key, videoData, "video/mp4")
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload video to R2: %w", err)
 	}
@@ -146,9 +138,10 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 		fmt.Printf("warning: failed to delete temp file from GCS: %v\n", err)
 	}
 
+	env := pkgConfig.GetCtxEnv(ctx)
 	return &VeoGenerateResult{
 		VideoID:  videoID,
-		VideoURL: r2URL,
+		VideoURL: pkgStorage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
 		Duration: float64(duration),
 	}, nil
 }

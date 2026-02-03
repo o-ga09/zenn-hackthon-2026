@@ -2,7 +2,6 @@ package genkit
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/generics"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/retry"
 )
@@ -187,13 +187,13 @@ func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.Media
 	ctx = WithFlowContext(ctx, ga.flowContext)
 
 	var (
-		wg               sync.WaitGroup
-		mu               sync.Mutex
-		results          []agent.MediaAnalysisOutput
-		successfulItems  int
-		failedItems      int
-		locationMap      = make(map[string]bool)
-		activityMap      = make(map[string]bool)
+		wg              sync.WaitGroup
+		mu              sync.Mutex
+		results         []agent.MediaAnalysisOutput
+		successfulItems int
+		failedItems     int
+		locationMap     = make(map[string]bool)
+		activityMap     = make(map[string]bool)
 	)
 
 	// 並列実行数制限（5並列）
@@ -219,7 +219,7 @@ func (ga *GenkitAgent) AnalyzeMediaBatch(ctx context.Context, input *agent.Media
 					return analyzeErr
 				}
 
-				convertedOutput, convertErr := convertToStruct[agent.MediaAnalysisOutput](outputRaw)
+				convertedOutput, convertErr := generics.ConvertToStruct[agent.MediaAnalysisOutput](outputRaw)
 				if convertErr != nil {
 					logger.Warn(ctx, "変換リトライ中", "FileID", item.FileID, "error", convertErr.Error())
 					return convertErr
@@ -326,27 +326,5 @@ func GenerateWithTools[T any](ctx context.Context, ga *GenkitAgent, prompt strin
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
-}
-
-// convertToStruct はinterface{}（通常はmap[string]interface{}）を指定した構造体に変換する
-func convertToStruct[T any](raw interface{}) (T, error) {
-	var result T
-
-	// すでに目的の型の場合はそのまま返す
-	if typed, ok := raw.(T); ok {
-		return typed, nil
-	}
-
-	// JSONを経由して変換
-	jsonBytes, err := json.Marshal(raw)
-	if err != nil {
-		return result, fmt.Errorf("failed to marshal to JSON: %w", err)
-	}
-
-	if err := json.Unmarshal(jsonBytes, &result); err != nil {
-		return result, fmt.Errorf("failed to unmarshal from JSON: %w", err)
-	}
-
 	return result, nil
 }

@@ -6,6 +6,22 @@ func DetectContentType(data []byte) string {
 	return http.DetectContentType(data)
 }
 
+func DetectContentTypeFromExtension(ext string) string {
+	switch ext {
+	case ".mp4":
+		return "video/mp4"
+	case ".mov":
+		return "video/quicktime"
+	case ".avi":
+		return "video/x-msvideo"
+	case ".webm":
+		return "video/webm"
+	case ".mkv":
+		return "video/x-matroska"
+	}
+	return ""
+}
+
 func IsValidImageType(contentType string) bool {
 	validTypes := []string{
 		"image/jpeg",

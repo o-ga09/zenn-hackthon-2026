@@ -8,7 +8,6 @@ import (
 
 type IQueue interface {
 	Enqueue(ctx context.Context, task *Task) error
-	Dequeue(ctx context.Context) (*Task, error)
 }
 
 type Task struct {

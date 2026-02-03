@@ -2,6 +2,7 @@ package response
 
 import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/date"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
 )
 
@@ -34,8 +35,8 @@ func ToResponse(user *domain.User) *UserResponse {
 		Name:           user.Name,
 		Type:           user.Type,
 		Plan:           user.Plan,
-		CreatedAt:      user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"), // TODO: 共通化
-		UpdatedAt:      user.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"), // TODO: 共通化
+		CreatedAt:      date.Format(user.CreatedAt),
+		UpdatedAt:      date.Format(user.UpdatedAt),
 		TokenBalance:   ptr.Int64ToPtr(user.TokenBalance.Int64),
 		DisplayName:    ptr.StringToPtr(user.DisplayName.String),
 		Bio:            ptr.StringToPtr(user.Bio.String),

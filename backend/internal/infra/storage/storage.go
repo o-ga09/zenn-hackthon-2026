@@ -129,10 +129,7 @@ func (s *CloudflareR2Storage) UploadFile(ctx context.Context, key string, fileDa
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	// フルURLを返す
-	// TODO: ここではキーのみ返す。 クライアント側でエンドポイントを設定する形にする
-	url := fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucketName, key)
-	return url, nil
+	return key, nil
 }
 
 func (s *CloudflareR2Storage) Delete(ctx context.Context, key string) error {
@@ -249,4 +246,8 @@ func (s *CloudflareR2Storage) List(ctx context.Context, prefix string) (map[stri
 	}
 
 	return base64ImagesMap, nil
+}
+
+func ObjectURKFromKey(endpoint, bucketName, key string) string {
+	return fmt.Sprintf("%s/%s/%s", endpoint, bucketName, key)
 }

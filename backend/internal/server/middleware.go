@@ -37,7 +37,6 @@ func AddID(ctx context.Context) echo.MiddlewareFunc {
 func WithTimeout() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// TODO: 30秒に戻す
 			// Veo動画生成などの長時間処理に対応するため180秒に設定
 			ctx, cancel := context.WithTimeout(c.Request().Context(), 180*time.Second)
 			defer cancel()

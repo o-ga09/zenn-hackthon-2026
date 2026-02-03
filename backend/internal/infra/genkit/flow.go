@@ -9,6 +9,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/agent"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/generics"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/logger"
 )
 
@@ -57,7 +58,7 @@ func RegisterVlogFlow(g *genkit.Genkit, registeredTools *RegisteredTools) VlogFl
 				ThumbnailURL: "",
 			}
 		} else {
-			thumbnailResult, _ = convertToStruct[GenerateThumbnailOutput](thumbnailRaw)
+			thumbnailResult, _ = generics.ConvertToStruct[GenerateThumbnailOutput](thumbnailRaw)
 		}
 
 		// Step 4: 共有URL生成
@@ -68,7 +69,7 @@ func RegisterVlogFlow(g *genkit.Genkit, registeredTools *RegisteredTools) VlogFl
 		if err != nil {
 			return nil, fmt.Errorf("share URL generation failed: %w", err)
 		}
-		shareResult, err := convertToStruct[GenerateShareURLOutput](shareRaw)
+		shareResult, err := generics.ConvertToStruct[GenerateShareURLOutput](shareRaw)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse share result: %w", err)
 		}
@@ -126,7 +127,7 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 		}
 
 		// RunRawはmap[string]interface{}を返すのでJSONを経由して変換
-		result, err := convertToStruct[agent.MediaAnalysisOutput](resultRaw)
+		result, err := generics.ConvertToStruct[agent.MediaAnalysisOutput](resultRaw)
 		if err != nil {
 			allErrors = append(allErrors, fmt.Errorf("failed to convert result: %w", err))
 			continue
@@ -185,7 +186,7 @@ func generateVlog(ctx context.Context, g *genkit.Genkit, input *agent.VlogInput,
 	}
 
 	// RunRawはmap[string]interface{}を返すのでJSONを経由して変換
-	result, err := convertToStruct[GenerateVlogVideoOutput](resultRaw)
+	result, err := generics.ConvertToStruct[GenerateVlogVideoOutput](resultRaw)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert result: %w", err)
 	}
@@ -240,5 +241,3 @@ func buildAnalyticsSummary(results []agent.MediaAnalysisOutput, mediaCount int) 
 		MediaCount: mediaCount,
 	}
 }
-
-// TODO: refactor は internal/infra/genkit/agent.go の convertToStruct を共通利用

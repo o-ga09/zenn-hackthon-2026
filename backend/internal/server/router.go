@@ -24,11 +24,10 @@ func (s *Server) SetupApplicationRoute() {
 	// 画像管理API
 	images := apiRoot.Group("/media", AuthMiddleware())
 	{
-		images.GET("", s.Image.List)                      // 画像一覧取得
-		images.POST("", s.Image.Upload)                   // メディアアップロード
-		images.GET("/:key", s.Image.GetByKey)             // 画像取得
-		images.DELETE("/:key", s.Image.Delete)            // 画像削除
-		images.GET("/:id/analytics", s.Image.GetAnalytics)   // 分析結果取得
+		images.GET("", s.Image.List)                          // 画像一覧取得
+		images.GET("/:key", s.Image.GetByKey)                 // 画像取得
+		images.DELETE("/:key", s.Image.Delete)                // 画像削除
+		images.GET("/:id/analytics", s.Image.GetAnalytics)    // 分析結果取得
 		images.PUT("/:id/analytics", s.Image.UpdateAnalytics) // 分析結果更新
 	}
 
@@ -52,10 +51,10 @@ func (s *Server) SetupApplicationRoute() {
 	// 通知API
 	notifications := apiRoot.Group("/notifications", AuthMiddleware())
 	{
-		notifications.GET("", s.Notification.GetNotifications)            // 通知一覧取得
-		notifications.PATCH("/:id/read", s.Notification.MarkAsRead)       // 通知を既読にする
-		notifications.PATCH("/read-all", s.Notification.MarkAllAsRead)    // 全通知を既読にする
-		notifications.DELETE("/:id", s.Notification.DeleteNotification)   // 通知削除
+		notifications.GET("", s.Notification.GetNotifications)          // 通知一覧取得
+		notifications.PATCH("/:id/read", s.Notification.MarkAsRead)     // 通知を既読にする
+		notifications.PATCH("/read-all", s.Notification.MarkAllAsRead)  // 全通知を既読にする
+		notifications.DELETE("/:id", s.Notification.DeleteNotification) // 通知削除
 	}
 
 	// 内部タスクAPI（Cloud Tasksからの呼び出し用、自動でIAM認証される）

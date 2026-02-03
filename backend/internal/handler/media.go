@@ -2,10 +2,7 @@ package handler
 
 import (
 	"fmt"
-	"io"
 	"net/http"
-	"path/filepath"
-	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
@@ -14,13 +11,11 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
-	nullvalue "github.com/o-ga09/zenn-hackthon-2026/pkg/null_value"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
 )
 
 type IImageServer interface {
 	List(c echo.Context) error
-	Upload(c echo.Context) error
 	GetByKey(c echo.Context) error
 	Delete(c echo.Context) error
 	GetAnalytics(c echo.Context) error
@@ -77,80 +72,6 @@ func (s *ImageServer) List(c echo.Context) error {
 	return c.JSON(http.StatusOK, response.MediaListResponse{
 		Media: mediaResponses,
 		Total: len(mediaResponses),
-	})
-}
-
-// multipart/form-dataでメディアアップロード(画像・動画対応)
-func (s *ImageServer) Upload(c echo.Context) error {
-	ctx := c.Request().Context()
-	// TODO: リクエスト構造体にバインドできるようにする
-	// multipart/form-dataからファイルを取得
-	file, err := c.FormFile("file")
-	if err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
-	// ファイルオープン
-	src, err := file.Open()
-	if err != nil {
-		return errors.Wrap(ctx, err)
-	}
-	defer src.Close()
-
-	// ファイルデータを読み取り
-	fileData, err := io.ReadAll(src)
-	if err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
-	// MIMEタイプを検出
-	contentType := http.DetectContentType(fileData)
-
-	// ファイル拡張子からもMIMEタイプを推定(動画の場合は必要)
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	switch ext {
-	case ".mp4":
-		contentType = "video/mp4"
-	case ".mov":
-		contentType = "video/quicktime"
-	case ".avi":
-		contentType = "video/x-msvideo"
-	case ".webm":
-		contentType = "video/webm"
-	case ".mkv":
-		contentType = "video/x-matroska"
-	}
-
-	// ユーザーIDを取得
-	userID := context.GetCtxFromUser(ctx)
-	key := fmt.Sprintf("media/%s/", userID)
-
-	// データベースにメタデータを保存
-	model := &domain.Media{
-		BaseModel: domain.BaseModel{
-			CreateUserID: &userID,
-		},
-		ContentType: contentType,
-		Size:        int64(len(fileData)),
-		URL:         nullvalue.ToNullString(key),
-	}
-	if err := s.imageRepo.Save(ctx, model); err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
-	// ストレージキーを生成
-	storageKey := fmt.Sprintf("media/%s/%s%s", userID, model.ID, ext)
-
-	// ストレージにアップロード
-	storageURL, err := s.storage.UploadFile(ctx, storageKey, fileData, contentType)
-	if err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
-	// レスポンスを返す
-	return c.JSON(http.StatusOK, response.MediaImageUploadResponse{
-		ID:  model.ID,
-		URL: storageURL,
 	})
 }
 

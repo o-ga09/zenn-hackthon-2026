@@ -74,8 +74,6 @@ type DeleteUserParam struct {
 }
 
 func (req *CreateUserRequest) ToUser() *domain.User {
-
-	// TODO: 共通処理化
 	// UIDの先頭10文字をNameに設定
 	name := req.UID
 	if len(req.UID) > 10 {

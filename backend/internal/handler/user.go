@@ -223,7 +223,6 @@ func (s *UserServer) Update(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	// TODO:トランザクション管理をする
 	updatedUser, err := s.repo.FindByID(ctx, &domain.User{BaseModel: domain.BaseModel{ID: updateUser.ID}})
 	if err != nil {
 		return errors.Wrap(ctx, err)
