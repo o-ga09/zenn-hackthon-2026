@@ -33,6 +33,27 @@ type VLogGetByIDResponse struct {
 	CreatedAt    string  `json:"created_at"`
 }
 
+// CreateVLogResponse はVLog生成APIのレスポンス
+type CreateVLogResponse struct {
+	VlogID string `json:"vlogId"`
+	Status string `json:"status"`
+}
+
+// MediaStatusResponse はメディアステータスSSEのレスポンス
+type MediaStatusResponse struct {
+	Medias         []*domain.Media `json:"medias"`
+	TotalItems     int             `json:"total_items"`
+	CompletedItems int             `json:"completed_items"`
+	FailedItems    int             `json:"failed_items"`
+	AllCompleted   bool            `json:"all_completed"`
+}
+
+// AnalyzeMediaResponse はメディア分析APIのレスポンス
+type AnalyzeMediaResponse struct {
+	MediaIDs []string `json:"media_ids"`
+	Status   string   `json:"status"`
+}
+
 func ToVLogItem(vlog *domain.Vlog) VLogItem {
 	return VLogItem{
 		ID:           vlog.ID,

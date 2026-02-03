@@ -36,6 +36,11 @@ func (cb *CustomBinder) Bind(i interface{}, c echo.Context) error {
 		return err
 	}
 
+	// multipart/form-dataのバインド
+	if err := cb.bindFormParams(i, c); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -127,6 +132,52 @@ func (cb *CustomBinder) bindQueryParams(i interface{}, c echo.Context) error {
 		// フィールドに値を設定
 		if fieldValue.CanSet() && fieldValue.Kind() == reflect.String {
 			fieldValue.SetString(queryValue)
+		}
+	}
+
+	return nil
+}
+
+func (cb *CustomBinder) bindFormParams(i interface{}, c echo.Context) error {
+	typ := reflect.TypeOf(i)
+	val := reflect.ValueOf(i)
+
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+		val = val.Elem()
+	}
+
+	// 構造体でない場合は何もしない
+	if typ.Kind() != reflect.Struct {
+		return nil
+	}
+
+	// 各フィールドをチェック
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		fieldValue := val.Field(i)
+
+		// formタグを取得
+		formTag := field.Tag.Get("form")
+		if formTag == "" {
+			continue
+		}
+
+		// タグ名を解析（例: "name" or "name,required"）
+		formName := strings.Split(formTag, ",")[0]
+		if formName == "" {
+			continue
+		}
+
+		// フォームパラメータから値を取得
+		formValue := c.FormValue(formName)
+		if formValue == "" {
+			continue
+		}
+
+		// フィールドに値を設定
+		if fieldValue.CanSet() && fieldValue.Kind() == reflect.String {
+			fieldValue.SetString(formValue)
 		}
 	}
 
