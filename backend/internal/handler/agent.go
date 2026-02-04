@@ -470,9 +470,15 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 		}
 
 		env := config.GetCtxEnv(ctx)
+
+		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+		if env.Env == "local" {
+			url = storage.ObjectURKFromKey("http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+		}
+
 		mediaItems = append(mediaItems, agent.MediaItem{
 			FileID:      mediaID,
-			URL:         storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
+			URL:         url,
 			Type:        detectMediaType(contentType),
 			ContentType: contentType,
 			Order:       i + 1,

@@ -2,34 +2,18 @@ package mysql
 
 import (
 	"context"
-	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	Ctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/ulid"
 )
 
 type NotificationRepository struct{}
 
 // Create - 通知を作成
 func (r *NotificationRepository) Create(ctx context.Context, notification *domain.Notification) error {
-	if notification.ID == "" {
-		id, err := ulid.GenerateULID()
-		if err != nil {
-			return errors.Wrap(ctx, err)
-		}
-		notification.ID = id
-	}
-	notification.CreatedAt = time.Now()
-	notification.UpdatedAt = time.Now()
-
-	if err := notification.Validate(); err != nil {
-		return errors.Wrap(ctx, err)
-	}
-
 	if err := Ctx.GetDB(ctx).Create(notification).Error; err != nil {
 		return errors.Wrap(ctx, err)
 	}
@@ -60,12 +44,11 @@ func (r *NotificationRepository) FindByUserID(ctx context.Context, userID string
 }
 
 // MarkAsRead - 通知を既読にする
-func (r *NotificationRepository) MarkAsRead(ctx context.Context, id string) error {
-	if err := Ctx.GetDB(ctx).Model(&domain.Notification{}).
-		Where("id = ?", id).
+func (r *NotificationRepository) MarkAsRead(ctx context.Context, notification *domain.Notification) error {
+	if err := Ctx.GetDB(ctx).
+		Where("id = ?", notification.ID).
 		Updates(map[string]interface{}{
-			"read":       true,
-			"updated_at": time.Now(),
+			"read": true,
 		}).Error; err != nil {
 		return errors.Wrap(ctx, err)
 	}
@@ -73,13 +56,12 @@ func (r *NotificationRepository) MarkAsRead(ctx context.Context, id string) erro
 }
 
 // MarkAllAsRead - ユーザーの全通知を既読にする
-func (r *NotificationRepository) MarkAllAsRead(ctx context.Context, userID string) (int64, error) {
-	result := Ctx.GetDB(ctx).Model(&domain.Notification{}).
-		Where("user_id = ? AND read = ?", userID, false).
-		Updates(map[string]interface{}{
-			"read":       true,
-			"updated_at": time.Now(),
-		})
+func (r *NotificationRepository) MarkAllAsRead(ctx context.Context, notification *domain.Notification) (int64, error) {
+	ctxWithSkip := Ctx.WithSkipOptimisticLock(ctx)
+
+	result := Ctx.GetDB(ctxWithSkip).
+		Where("user_id = ?", notification.UserID).
+		Updates(&domain.Notification{Read: true})
 
 	if result.Error != nil {
 		return 0, errors.Wrap(ctx, result.Error)
@@ -89,8 +71,8 @@ func (r *NotificationRepository) MarkAllAsRead(ctx context.Context, userID strin
 }
 
 // Delete - 通知を削除
-func (r *NotificationRepository) Delete(ctx context.Context, id string) error {
-	if err := Ctx.GetDB(ctx).Delete(&domain.Notification{}, "id = ?", id).Error; err != nil {
+func (r *NotificationRepository) Delete(ctx context.Context, notification *domain.Notification) error {
+	if err := Ctx.GetDB(ctx).Delete(notification).Error; err != nil {
 		return errors.Wrap(ctx, err)
 	}
 	return nil
@@ -100,7 +82,7 @@ func (r *NotificationRepository) Delete(ctx context.Context, id string) error {
 func (r *NotificationRepository) CountUnread(ctx context.Context, userID string) (int64, error) {
 	var count int64
 	if err := Ctx.GetDB(ctx).Model(&domain.Notification{}).
-		Where("user_id = ? AND read = ?", userID, false).
+		Where("user_id = ? AND `read` = ?", userID, false).
 		Count(&count).Error; err != nil {
 		return 0, errors.Wrap(ctx, err)
 	}

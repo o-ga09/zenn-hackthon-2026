@@ -5,6 +5,8 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/request"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/response"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 )
@@ -41,43 +43,43 @@ func (h *NotificationHandler) GetNotifications(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"notifications": notifications,
-		"unread_count":  unreadCount,
-	})
+	return c.JSON(http.StatusOK, response.ToNotificationResponse(notifications, int(unreadCount)))
 }
 
 // MarkAsRead - 通知を既読にする
 func (h *NotificationHandler) MarkAsRead(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID := context.GetCtxFromUser(ctx)
-	notificationID := c.Param("id")
+
+	var req request.MarkNotificationAsReadRequest
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
 	// 通知の所有権を確認
-	notification, err := h.notificationRepo.FindByID(ctx, notificationID)
+	notification, err := h.notificationRepo.FindByID(ctx, req.ID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Notification not found",
-		})
+		return errors.MakeNotFoundError(ctx, "通知が取得できませんでした")
 	}
 
 	if notification.UserID != userID {
-		return c.JSON(http.StatusForbidden, map[string]string{
-			"error": "Access denied",
-		})
+		return errors.MakeBusinessError(ctx, "ユーザーIDが不正です")
 	}
 
-	if err := h.notificationRepo.MarkAsRead(ctx, notificationID); err != nil {
+	if err := h.notificationRepo.MarkAsRead(ctx, &domain.Notification{BaseModel: domain.BaseModel{ID: req.ID, Version: req.Version}}); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
 	// 更新後の通知を返す
-	updatedNotification, err := h.notificationRepo.FindByID(ctx, notificationID)
+	updatedNotification, err := h.notificationRepo.FindByID(ctx, req.ID)
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
-	return c.JSON(http.StatusOK, updatedNotification)
+	return c.JSON(http.StatusOK, response.ToNotification(updatedNotification))
 }
 
 // MarkAllAsRead - 全通知を既読にする
@@ -85,15 +87,12 @@ func (h *NotificationHandler) MarkAllAsRead(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID := context.GetCtxFromUser(ctx)
 
-	updatedCount, err := h.notificationRepo.MarkAllAsRead(ctx, userID)
+	_, err := h.notificationRepo.MarkAllAsRead(ctx, &domain.Notification{UserID: userID})
 	if err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"updated_count": updatedCount,
-		"message":       "All notifications marked as read",
-	})
+	return c.NoContent(http.StatusNoContent)
 }
 
 // DeleteNotification - 通知を削除
@@ -105,18 +104,14 @@ func (h *NotificationHandler) DeleteNotification(c echo.Context) error {
 	// 通知の所有権を確認
 	notification, err := h.notificationRepo.FindByID(ctx, notificationID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Notification not found",
-		})
+		return errors.MakeNotFoundError(ctx, "通知が取得できませんでした")
 	}
 
 	if notification.UserID != userID {
-		return c.JSON(http.StatusForbidden, map[string]string{
-			"error": "Access denied",
-		})
+		return errors.MakeBusinessError(ctx, "ユーザーIDが不正です")
 	}
 
-	if err := h.notificationRepo.Delete(ctx, notificationID); err != nil {
+	if err := h.notificationRepo.Delete(ctx, notification); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 

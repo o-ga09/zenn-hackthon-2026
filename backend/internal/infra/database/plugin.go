@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
+	pkgctx "github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/uuid"
 	"gorm.io/gorm"
@@ -152,7 +152,7 @@ func (p *UUIDPlugin) setUUIDIfEmpty(db *gorm.DB, field *schema.Field, reflectVal
 // setUserIDFromContext は、contextからユーザーIDを取得してフィールドに設定する
 func (p *UUIDPlugin) setUserIDFromContext(db *gorm.DB, field *schema.Field, reflectValue reflect.Value) {
 	// contextからユーザーIDを取得
-	userID := context.GetCtxFromUser(db.Statement.Context)
+	userID := pkgctx.GetCtxFromUser(db.Statement.Context)
 	if userID != "" {
 		// ユーザーIDフィールドに値を設定
 		_ = field.Set(db.Statement.Context, reflectValue, userID)
@@ -198,6 +198,11 @@ func (p *OptimisticLockPlugin) Initialize(db *gorm.DB) error {
 
 // beforeUpdate は、更新前に楽観ロックチェック用のWHERE条件を追加する
 func (p *OptimisticLockPlugin) beforeUpdate(db *gorm.DB) {
+	// コンテキストから楽観ロックスキップフラグをチェック
+	if skip, ok := db.Statement.Context.Value(pkgctx.SkipOptimisticLock).(bool); ok && skip {
+		return
+	}
+
 	if db.Statement.Schema != nil {
 		// Versionフィールドが存在するかチェック
 		if field := db.Statement.Schema.LookUpField("Version"); field != nil {
@@ -225,6 +230,11 @@ func (p *OptimisticLockPlugin) beforeUpdate(db *gorm.DB) {
 
 // afterUpdate は、更新後に影響行数をチェックして楽観ロック例外を発生させる
 func (p *OptimisticLockPlugin) afterUpdate(db *gorm.DB) {
+	// コンテキストから楽観ロックスキップフラグをチェック
+	if skip, ok := db.Statement.Context.Value(pkgctx.SkipOptimisticLock).(bool); ok && skip {
+		return
+	}
+
 	// エラーが既に発生している場合は何もしない
 	if db.Error != nil {
 		return

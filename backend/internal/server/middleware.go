@@ -119,10 +119,13 @@ func AuthMiddleware() echo.MiddlewareFunc {
 				return errors.MakeAuthorizationError(ctx, "無効なセッションCookieです")
 			}
 
+			if c.Request().URL.Path == "/api/users" && c.Request().Method == http.MethodPost {
+				return next(c)
+			}
+
 			ctx = c.Request().Context()
 			var user domain.User
 			if err := Ctx.GetDB(ctx).First(&user, &domain.User{UID: sessionToken.UID}).Error; err != nil {
-				fmt.Println("✅", err)
 				return errors.MakeAuthorizationError(ctx, "ユーザー情報の取得に失敗しました")
 			}
 			ctx = Ctx.SetCtxFromUser(ctx, user.ID)

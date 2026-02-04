@@ -13,11 +13,13 @@ type CtxUserKey string
 type CtxRequestIDKey string
 type CfgKey string
 type DBKey string
+type SkipOptimisticLockKey string
 
 const ConfigKey CfgKey = "config"
 const USERID CtxUserKey = "userID"
 const REQUESTID CtxRequestIDKey = "requestId"
 const DB DBKey = "db"
+const SkipOptimisticLock SkipOptimisticLockKey = "skipOptimisticLock"
 
 func GetCtxFromUser(ctx context.Context) string {
 	userID, ok := ctx.Value(USERID).(string)
@@ -63,4 +65,10 @@ func SetRequestTime(ctx context.Context, time time.Time) context.Context {
 
 func SetConfig(ctx context.Context, cfg *config.Config) context.Context {
 	return context.WithValue(ctx, config.CtxEnvKey, cfg)
+}
+
+// WithSkipOptimisticLock は楽観ロックチェックをスキップするコンテキストを返す
+// 一括更新など、楽観ロックチェックが不要な場合に使用する
+func WithSkipOptimisticLock(ctx context.Context) context.Context {
+	return context.WithValue(ctx, SkipOptimisticLock, true)
 }

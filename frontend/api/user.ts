@@ -136,22 +136,6 @@ export const useDeleteUser = (userId: string) => {
   })
 }
 
-/**
- * ユーザーがアップロードした写真の総数を取得するフック
- * @param userId ユーザーID
- */
-export const useGetUserPhotoCount = (userId: string) => {
-  return useQuery({
-    queryKey: USER_PHOTO_COUNT_QUERY_KEY(userId),
-    queryFn: async (): Promise<{ videoCount: number; uploadCount: number }> => {
-      const response = await apiClient.get(`/users/${userId}/upload`)
-      return response.data
-    },
-    // ユーザーIDが空の場合はクエリを無効化
-    enabled: !!userId,
-  })
-}
-
 export type User = {
   id: string
   version: number
@@ -168,6 +152,7 @@ export type User = {
   followersCount: number
   followingCount: number
   isPublic?: boolean
+  videoCount?: number
   created_at: string
   updated_at: string
 }

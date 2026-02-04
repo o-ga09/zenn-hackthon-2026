@@ -12,6 +12,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
+	"gorm.io/gorm"
 )
 
 type IImageServer interface {
@@ -130,6 +131,9 @@ func (s *ImageServer) GetAnalytics(c echo.Context) error {
 
 	analytics, err := s.analyticsRepo.FindByFileID(ctx, req.ID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.MakeNotFoundError(ctx, "分析結果を取得できませんでした")
+		}
 		return errors.Wrap(ctx, err)
 	}
 

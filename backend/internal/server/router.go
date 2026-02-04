@@ -52,8 +52,8 @@ func (s *Server) SetupApplicationRoute() {
 	notifications := apiRoot.Group("/notifications", AuthMiddleware())
 	{
 		notifications.GET("", s.Notification.GetNotifications)          // 通知一覧取得
-		notifications.PATCH("/:id/read", s.Notification.MarkAsRead)     // 通知を既読にする
-		notifications.PATCH("/read-all", s.Notification.MarkAllAsRead)  // 全通知を既読にする
+		notifications.PUT("/:id/read", s.Notification.MarkAsRead)       // 通知を既読にする
+		notifications.PUT("/read-all", s.Notification.MarkAllAsRead)    // 全通知を既読にする
 		notifications.DELETE("/:id", s.Notification.DeleteNotification) // 通知削除
 	}
 

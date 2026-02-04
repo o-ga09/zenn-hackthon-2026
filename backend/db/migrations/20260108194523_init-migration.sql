@@ -224,19 +224,26 @@ CREATE TABLE IF NOT EXISTS activities (
 
 -- notificationsテーブル
 CREATE TABLE IF NOT EXISTS notifications (
-    id VARCHAR(26) PRIMARY KEY COMMENT 'UUID形式のID',
-    user_id VARCHAR(255) NOT NULL COMMENT 'Firebase AuthのユーザーID',
+    id VARCHAR(255) PRIMARY KEY COMMENT 'UUID形式のID',
+    version INT NOT NULL DEFAULT 0 COMMENT '楽観的ロックのバージョン',
+    create_user_id VARCHAR(255) NULL COMMENT '作成者のユーザーID',
+    update_user_id VARCHAR(255) NULL COMMENT '更新者のユーザーID',
+    user_id VARCHAR(255) NOT NULL COMMENT 'ユーザーID',
     type VARCHAR(50) NOT NULL COMMENT '通知タイプ（media_completed, media_failed, vlog_completed, vlog_failed）',
     title VARCHAR(255) NOT NULL COMMENT '通知タイトル',
     message TEXT NOT NULL COMMENT '通知メッセージ',
-    media_id VARCHAR(26) NULL COMMENT '関連メディアID（任意）',
-    vlog_id VARCHAR(26) NULL COMMENT '関連VLogID（任意）',
+    media_id VARCHAR(255) NULL COMMENT '関連メディアID',
+    vlog_id VARCHAR(255) NULL COMMENT '関連VLogID',
     `read` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '既読フラグ',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+    deleted_at TIMESTAMP NULL COMMENT '削除日時',
     INDEX idx_notifications_user_created (user_id, created_at DESC),
     INDEX idx_notifications_media_id (media_id),
     INDEX idx_notifications_vlog_id (vlog_id),
-    FOREIGN KEY (media_id) REFERENCES media (id) ON DELETE SET NULL,
-    FOREIGN KEY (vlog_id) REFERENCES vlogs (id) ON DELETE SET NULL
+    CONSTRAINT fk_notifications_user_id FOREIGN KEY (user_id) REFERENCES users (id),
+    CONSTRAINT fk_notifications_vlog_id FOREIGN KEY (vlog_id) REFERENCES vlogs (id),
+    CONSTRAINT fk_notifications_media_id FOREIGN KEY (media_id) REFERENCES media (id),
+    CONSTRAINT fk_notifications_create_user_id FOREIGN KEY (create_user_id) REFERENCES users (id),
+    CONSTRAINT fk_notifications_update_user_id FOREIGN KEY (update_user_id) REFERENCES users (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ユーザー通知テーブル';

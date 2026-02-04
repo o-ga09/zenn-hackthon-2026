@@ -2,6 +2,7 @@ import { apiClient } from './client'
 
 export interface Notification {
   id: string
+  version: number
   user_id: string
   type: 'media_completed' | 'media_failed' | 'vlog_completed' | 'vlog_failed'
   title: string
@@ -24,13 +25,15 @@ export const notificationApi = {
     return response.data
   },
 
-  markAsRead: async (id: string): Promise<Notification> => {
-    const response = await apiClient.patch(`/notifications/${id}/read`)
+  markAsRead: async (id: string, version: number): Promise<Notification> => {
+    const response = await apiClient.put(`/notifications/${id}/read`, {
+      version,
+    })
     return response.data
   },
 
   markAllAsRead: async (): Promise<{ updated_count: number; message: string }> => {
-    const response = await apiClient.patch('/notifications/read-all')
+    const response = await apiClient.put('/notifications/read-all')
     return response.data
   },
 

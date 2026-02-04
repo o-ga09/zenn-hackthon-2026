@@ -24,7 +24,7 @@ export default function CommonHeader() {
     useNotifications()
   const router = useRouter()
 
-  console.log('Current User in Header:', user)
+  console.log('通知', notifications)
   const handleLogout = async () => {
     try {
       await logout()
@@ -121,7 +121,7 @@ export default function CommonHeader() {
                       className={`flex flex-col items-start p-3 cursor-pointer focus:bg-gray-50 ${
                         !notification.read ? 'bg-blue-50/50' : ''
                       }`}
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={() => markAsRead(notification.id, notification.version)}
                     >
                       <div className="flex items-start justify-between w-full">
                         <div className="flex-1 min-w-0">

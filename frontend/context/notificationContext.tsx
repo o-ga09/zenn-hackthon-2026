@@ -14,6 +14,7 @@ import { useAuth } from './authContext'
 
 export interface Notification {
   id: string
+  version: number
   type: 'success' | 'error' | 'info'
   title: string
   message: string
@@ -27,7 +28,7 @@ interface NotificationContextType {
   notifications: Notification[]
   unreadCount: number
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void
-  markAsRead: (id: string) => void
+  markAsRead: (id: string, version: number) => void
   markAllAsRead: () => void
   removeNotification: (id: string) => void
   clearAll: () => void
@@ -52,6 +53,7 @@ function mapApiNotificationToUI(apiNotif: ApiNotification): Notification {
 
   return {
     id: apiNotif.id,
+    version: apiNotif.version,
     type: uiType,
     title: apiNotif.title,
     message: apiNotif.message,
@@ -95,9 +97,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     []
   )
 
-  const markAsRead = useCallback(async (id: string) => {
+  const markAsRead = useCallback(async (id: string, version: number) => {
     try {
-      await notificationApi.markAsRead(id)
+      await notificationApi.markAsRead(id, version)
       setNotifications(prev =>
         prev.map(notification =>
           notification.id === id ? { ...notification, read: true } : notification
