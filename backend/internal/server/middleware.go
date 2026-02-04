@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -225,8 +224,7 @@ type CustomValidator struct {
 func (cv *CustomValidator) Validate(i interface{}) error {
 	err := cv.validator.Struct(i)
 	if err != nil {
-		fmt.Println("⏰")
-		return errors.MakeInvalidArgumentError(context.Background(), err.Error())
+		return err
 	}
 	return nil
 }

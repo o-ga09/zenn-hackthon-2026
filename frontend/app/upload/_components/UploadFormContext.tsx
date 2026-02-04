@@ -94,16 +94,16 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
 
       // 1. VLog作成APIを呼び出し
       const formData = new FormData()
-      
+
       // 新規アップロードファイル
       uploadedFiles.forEach(file => {
         formData.append('files', file)
       })
 
-      // 既存メディアIDの追加 (APIが要求する形式に合わせて実装)
-      if (selectedMediaIds.length > 0) {
-        formData.append('mediaIds', JSON.stringify(selectedMediaIds))
-      }
+      // 既存メディアIDの追加 (配列の各要素を個別にappend)
+      selectedMediaIds.forEach(mediaId => {
+        formData.append('mediaIds', mediaId)
+      })
 
       formData.append('title', formDataValues.travelTitle || '')
       formData.append('travelDate', formDataValues.travelDate || '')
@@ -117,7 +117,7 @@ export function UploadFormProvider({ children }: UploadFormProviderProps) {
       })
 
       setVlogId(res.data.vlogId)
-      
+
       // 生成プロセスが開始されたので、進捗表示フェーズへ（実装が必要）
       // ここではひとまず生成中フラグを維持し、SSEによる進捗監視に移行する準備をする
     } catch (error) {

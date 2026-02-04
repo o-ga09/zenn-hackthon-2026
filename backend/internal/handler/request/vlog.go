@@ -16,7 +16,7 @@ type VLogDeleteRequest struct {
 }
 
 type CreateVLogRequest struct {
-	Files       []*multipart.FileHeader `form:"files" validate:"required,min=1,dive"`
+	Files       []*multipart.FileHeader `form:"files" validate:"omitempty,min=1,dive"`
 	MediaIDs    []string                `form:"mediaIds" validate:"omitempty,dive,uuid"`
 	Title       *string                 `form:"title,omitempty"`
 	TravelDate  *string                 `form:"travelDate,omitempty"`
@@ -29,5 +29,5 @@ type CreateVLogRequest struct {
 
 type AnalyzeMediaRequest struct {
 	Files    []*multipart.FileHeader `form:"files" validate:"required,min=1,dive"`
-	MediaIDs []*string               `form:"mediaIds" validate:"omitempty,dive,uuid"`
+	MediaIDs []*string               `form:"mediaIds" validate:"dive,uuid,omitempty"`
 }
