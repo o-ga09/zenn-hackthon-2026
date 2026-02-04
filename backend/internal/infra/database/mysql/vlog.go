@@ -46,6 +46,7 @@ func (r *VLogRepository) Update(ctx context.Context, vlog *domain.Vlog) error {
 	return nil
 }
 
+// TODO: 楽観ロックチェック対応
 func (r *VLogRepository) UpdateStatus(ctx context.Context, id string, status domain.VlogStatus, errorMsg string, progress float64) error {
 	updates := map[string]interface{}{
 		"status":        status,
