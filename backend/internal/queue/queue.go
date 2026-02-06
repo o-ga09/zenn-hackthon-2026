@@ -11,8 +11,9 @@ type IQueue interface {
 }
 
 type Task struct {
-	ID     string           `json:"id"`
-	Type   string           `json:"type"`
-	Data   *agent.VlogInput `json:"data"`
-	Status string           `json:"status"`
+	ID      string           `json:"id"`
+	Version int              `json:"version"`
+	Type    string           `json:"type"`
+	Data    *agent.VlogInput `json:"data"`
+	Status  string           `json:"status"`
 }

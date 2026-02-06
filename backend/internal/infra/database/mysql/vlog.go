@@ -46,14 +46,8 @@ func (r *VLogRepository) Update(ctx context.Context, vlog *domain.Vlog) error {
 	return nil
 }
 
-// TODO: 楽観ロックチェック対応
-func (r *VLogRepository) UpdateStatus(ctx context.Context, id string, status domain.VlogStatus, errorMsg string, progress float64) error {
-	updates := map[string]interface{}{
-		"status":        status,
-		"error_message": errorMsg,
-		"progress":      progress,
-	}
-	if err := Ctx.GetDB(ctx).Model(&domain.Vlog{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+func (r *VLogRepository) UpdateStatus(ctx context.Context, vlog *domain.Vlog) error {
+	if err := Ctx.GetDB(ctx).Updates(vlog).Error; err != nil {
 		return err
 	}
 	return nil

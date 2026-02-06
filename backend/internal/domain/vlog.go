@@ -44,7 +44,7 @@ type IVLogRepository interface {
 	Delete(ctx context.Context, model *Vlog) error
 	Create(ctx context.Context, vlog *Vlog) error
 	Update(ctx context.Context, vlog *Vlog) error
-	UpdateStatus(ctx context.Context, id string, status VlogStatus, errorMsg string, progress float64) error
+	UpdateStatus(ctx context.Context, vlog *Vlog) error
 }
 
 type ListOptions struct {

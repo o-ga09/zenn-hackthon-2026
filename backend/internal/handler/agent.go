@@ -142,10 +142,11 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 
 	// Cloud Tasksにタスクを登録
 	payload := &queue.Task{
-		ID:     vlog.ID,
-		Type:   "ProcessVLogTask",
-		Data:   input,
-		Status: "pending",
+		ID:      vlog.ID,
+		Version: vlog.Version,
+		Type:    "ProcessVLogTask",
+		Data:    input,
+		Status:  domain.MediaStatusPending.String(),
 	}
 
 	cfg := config.GetCtxEnv(ctx)
@@ -194,33 +195,48 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 
 // executeVLogGeneration はVLog生成のコアロジックを実行する
 func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Task) error {
-	// ステータスをPROCESSINGに更新
-	now := time.Now()
-	if err := s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", 0.1); err != nil {
-		return err
-	}
-
+	// 最新のVlogレコードを取得
 	vlogRef, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: task.ID}})
 	if err != nil {
 		return err
 	}
+
+	// ステータスをPROCESSINGに更新
+	now := time.Now()
+	vlogRef.Status = domain.VlogStatusProcessing
+	vlogRef.ErrorMessage = ""
+	vlogRef.Progress = 0.1
 	vlogRef.StartedAt = &now
-	_ = s.vlogRepo.Update(ctx, vlogRef)
+	if err := s.vlogRepo.Update(ctx, vlogRef); err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
 	// VLog生成を実行
 	var res *agent.VlogOutput
 	err = s.txManager.Do(ctx, func(ctx context.Context) error {
 		var err error
 		res, err = s.agent.CreateVlogWithProgress(ctx, task.Data, func(p agent.FlowProgress) {
-			// 進捗をDBに更新
-			_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusProcessing, "", p.Progress)
+			// 進捗をDBに更新（最新のレコードを取得してから更新）
+			latestVlog, getErr := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: vlogRef.ID}})
+			if getErr == nil {
+				latestVlog.Status = domain.VlogStatusProcessing
+				latestVlog.ErrorMessage = ""
+				latestVlog.Progress = p.Progress
+				_ = s.vlogRepo.Update(ctx, latestVlog)
+			}
 		})
 		return err
 	})
 
 	if err != nil {
-		// 失敗ステータスに更新
-		_ = s.vlogRepo.UpdateStatus(ctx, task.ID, domain.VlogStatusFailed, err.Error(), 0)
+		// 最新のレコードを取得してから失敗ステータスに更新
+		latestVlog, getErr := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: vlogRef.ID}})
+		if getErr == nil {
+			latestVlog.Status = domain.VlogStatusFailed
+			latestVlog.ErrorMessage = err.Error()
+			latestVlog.Progress = 0
+			_ = s.vlogRepo.Update(ctx, latestVlog)
+		}
 
 		// VLog生成失敗の通知を作成
 		if vlogRef.CreateUserID != nil {
@@ -229,7 +245,7 @@ func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Tas
 				Type:    domain.NotificationTypeVlogFailed,
 				Title:   "VLog生成失敗",
 				Message: fmt.Sprintf("VLogの生成に失敗しました: %s", err.Error()),
-				VlogID:  nullvalue.ToNullString(task.ID),
+				VlogID:  nullvalue.ToNullString(vlogRef.ID),
 				Read:    false,
 			}
 			if notifErr := s.notificationRepo.Create(ctx, notification); notifErr != nil {
@@ -237,32 +253,38 @@ func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Tas
 			}
 		}
 
-		return err
+		return errors.Wrap(ctx, err)
 	}
 
 	// 成功ステータスと生成された情報を更新
-	vlogRef.VideoID = res.VideoID
-	vlogRef.VideoURL = res.VideoURL
-	vlogRef.ShareURL = res.ShareURL
-	vlogRef.Duration = res.Duration
-	vlogRef.Thumbnail = res.ThumbnailURL
-	vlogRef.Status = domain.VlogStatusCompleted
-	vlogRef.Progress = 1.0
-	completedAt := time.Now()
-	vlogRef.CompletedAt = &completedAt
+	// 最新のレコードを取得
+	latestVlog, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: vlogRef.ID}})
+	if err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
-	if err := s.vlogRepo.Update(ctx, vlogRef); err != nil {
-		return err
+	latestVlog.VideoID = res.VideoID
+	latestVlog.VideoURL = res.VideoURL
+	latestVlog.ShareURL = res.ShareURL
+	latestVlog.Duration = res.Duration
+	latestVlog.Thumbnail = res.ThumbnailURL
+	latestVlog.Status = domain.VlogStatusCompleted
+	latestVlog.Progress = 1.0
+	completedAt := time.Now()
+	latestVlog.CompletedAt = &completedAt
+
+	if err := s.vlogRepo.Update(ctx, latestVlog); err != nil {
+		return errors.Wrap(ctx, err)
 	}
 
 	// VLog生成完了の通知を作成
-	if vlogRef.CreateUserID != nil {
+	if latestVlog.CreateUserID != nil {
 		notification := &domain.Notification{
-			UserID:  *vlogRef.CreateUserID,
+			UserID:  *latestVlog.CreateUserID,
 			Type:    domain.NotificationTypeVlogCompleted,
 			Title:   "VLog生成完了",
 			Message: "VLogの生成が完了しました",
-			VlogID:  nullvalue.ToNullString(task.ID),
+			VlogID:  nullvalue.ToNullString(latestVlog.ID),
 			Read:    false,
 		}
 		if notifErr := s.notificationRepo.Create(ctx, notification); notifErr != nil {
@@ -328,10 +350,15 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
 		}
 
+		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+		if env.Env == "local" {
+			url = storage.ObjectURKFromKey("http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+		}
+
 		// MediaItemを作成
 		mediaItems = append(mediaItems, agent.MediaItem{
 			FileID:      media.ID,
-			URL:         storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
+			URL:         url,
 			Type:        mediaType,
 			ContentType: contentType,
 			Order:       i + 1,

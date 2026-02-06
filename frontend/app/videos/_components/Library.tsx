@@ -16,7 +16,6 @@ import {
   X,
 } from 'lucide-react'
 import React, { useState, useEffect, useMemo } from 'react'
-import { useGetTravelsByUserId } from '@/api/travelApi'
 import { useAuth } from '@/context/authContext'
 
 // フィルタータイプの定義
