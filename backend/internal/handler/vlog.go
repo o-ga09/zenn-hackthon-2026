@@ -106,7 +106,13 @@ func (s *VLogServer) Delete(c echo.Context) error {
 
 func (s *VLogServer) StreamStatus(c echo.Context) error {
 	ctx := c.Request().Context()
-	vlogID := c.Param("id")
+	var req request.VLogGetByIDRequest
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
 	// SSEヘッダー設定
 	c.Response().Header().Set("Content-Type", "text/event-stream")
@@ -119,7 +125,7 @@ func (s *VLogServer) StreamStatus(c echo.Context) error {
 
 	// 最初に現在の状態を送信
 	vlog, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{
-		BaseModel: domain.BaseModel{ID: vlogID},
+		BaseModel: domain.BaseModel{ID: req.ID},
 	})
 	if err == nil {
 		res := response.ToVLogGetByIDResponse(vlog)
@@ -135,7 +141,7 @@ func (s *VLogServer) StreamStatus(c echo.Context) error {
 		case <-ticker.C:
 			// VLogステータスを取得
 			vlog, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{
-				BaseModel: domain.BaseModel{ID: vlogID},
+				BaseModel: domain.BaseModel{ID: req.ID},
 			})
 			if err != nil {
 				// エラー時は継続を試みるが、あまりにひどい場合は終了

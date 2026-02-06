@@ -31,3 +31,7 @@ type AnalyzeMediaRequest struct {
 	Files    []*multipart.FileHeader `form:"files" validate:"required,min=1,dive"`
 	MediaIDs []*string               `form:"mediaIds" validate:"dive,uuid,omitempty"`
 }
+
+type AnalyzeMediaStreamRequest struct {
+	IDs []string `query:"ids" validate:"required,dive,uuid"`
+}

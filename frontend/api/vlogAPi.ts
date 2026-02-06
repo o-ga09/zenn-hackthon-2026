@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {apiClient} from './client'
+import { apiClient } from './client'
 
 // VLog 型定義
 export interface Vlog {
@@ -66,15 +66,15 @@ export const useDeleteVlog = (vlogId?: string) => {
       if (vlogId) {
         queryClient.removeQueries({ queryKey: VLOG_QUERY_KEY(vlogId) })
       }
-	  queryClient.invalidateQueries({ queryKey: VLOGS_QUERY_KEY })
-	},
-	onError: error => {
-	  console.error('VLog削除エラー:', error)
-	},
+      queryClient.invalidateQueries({ queryKey: VLOGS_QUERY_KEY })
+    },
+    onError: error => {
+      console.error('VLog削除エラー:', error)
+    },
   })
 }
 
-/** 
+/**
  * VLog作成の進捗をSSEで監視するフック
  * 接続が切れた場合は自動的にポーリングにフォールバックする
  */
@@ -109,10 +109,10 @@ export const useVlogSSE = (vlogId: string | null) => {
       }, 3000)
     }
 
-    const sseUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/vlogs/${vlogId}/stream`
+    const sseUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/api/vlogs/${vlogId}/stream`
     const eventSource = new EventSource(sseUrl, { withCredentials: true })
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = event => {
       try {
         const data = JSON.parse(event.data) as Vlog
         setStatus(data)
@@ -125,7 +125,7 @@ export const useVlogSSE = (vlogId: string | null) => {
       }
     }
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = err => {
       console.error('SSE connection error:', err)
       eventSource.close()
       // SSEが失敗したらポーリングに切り替え

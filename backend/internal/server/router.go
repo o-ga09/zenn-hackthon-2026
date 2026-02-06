@@ -55,6 +55,7 @@ func (s *Server) SetupApplicationRoute() {
 		notifications.PUT("/:id/read", s.Notification.MarkAsRead)       // 通知を既読にする
 		notifications.PUT("/read-all", s.Notification.MarkAllAsRead)    // 全通知を既読にする
 		notifications.DELETE("/:id", s.Notification.DeleteNotification) // 通知削除
+		notifications.DELETE("", s.Notification.DeleteAllNotifications) // 全通知削除
 	}
 
 	// 内部タスクAPI（Cloud Tasksからの呼び出し用、自動でIAM認証される）

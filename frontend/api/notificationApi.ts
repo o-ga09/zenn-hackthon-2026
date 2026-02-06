@@ -40,4 +40,7 @@ export const notificationApi = {
   deleteNotification: async (id: string): Promise<void> => {
     await apiClient.delete(`/notifications/${id}`)
   },
+  deleteAllNotifications: async (): Promise<void> => {
+    await apiClient.delete(`notifications`)
+  },
 }

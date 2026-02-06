@@ -352,7 +352,6 @@ func detectMediaType(contentType string) string {
 // AnalyzeMedia はメディアを分析する（非同期処理版）
 func (s *AgentServer) AnalyzeMedia(c echo.Context) error {
 	ctx := c.Request().Context()
-	// ユーザーIDをコンテキストから取得
 	userIDStr := Ctx.GetCtxFromUser(ctx)
 	if userIDStr == "" {
 		userIDStr = "anonymous"
@@ -563,7 +562,7 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 // StreamAnalysisStatus はメディア分析の進捗をSSEでストリーミングする
 func (s *AgentServer) StreamAnalysisStatus(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req request.AnalyzeMediaRequest
+	var req request.AnalyzeMediaStreamRequest
 	if err := c.Bind(&req); err != nil {
 		return errors.Wrap(ctx, err)
 	}
@@ -572,11 +571,9 @@ func (s *AgentServer) StreamAnalysisStatus(c echo.Context) error {
 		return errors.Wrap(ctx, err)
 	}
 
-	mediaIDs := make([]string, 0, len(req.MediaIDs))
-	for _, idPtr := range req.MediaIDs {
-		if idPtr != nil {
-			mediaIDs = append(mediaIDs, *idPtr)
-		}
+	mediaIDs := make([]string, 0, len(req.IDs))
+	for _, id := range req.IDs {
+		mediaIDs = append(mediaIDs, id)
 	}
 
 	// SSEヘッダー設定

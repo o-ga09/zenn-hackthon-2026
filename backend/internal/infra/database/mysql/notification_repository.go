@@ -45,11 +45,9 @@ func (r *NotificationRepository) FindByUserID(ctx context.Context, userID string
 
 // MarkAsRead - 通知を既読にする
 func (r *NotificationRepository) MarkAsRead(ctx context.Context, notification *domain.Notification) error {
+	notification.Read = true
 	if err := Ctx.GetDB(ctx).
-		Where("id = ?", notification.ID).
-		Updates(map[string]interface{}{
-			"read": true,
-		}).Error; err != nil {
+		Updates(notification).Error; err != nil {
 		return errors.Wrap(ctx, err)
 	}
 	return nil
@@ -87,4 +85,14 @@ func (r *NotificationRepository) CountUnread(ctx context.Context, userID string)
 		return 0, errors.Wrap(ctx, err)
 	}
 	return count, nil
+}
+
+// DeleteAllByUserID - ユーザーの全通知を削除
+func (r *NotificationRepository) DeleteAllByUserID(ctx context.Context, userID string) error {
+	if err := Ctx.GetDB(ctx).
+		Delete(&domain.Notification{}, &domain.Notification{UserID: userID}).Error; err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return nil
 }

@@ -16,6 +16,7 @@ type INotificationHandler interface {
 	MarkAsRead(ctx echo.Context) error
 	MarkAllAsRead(ctx echo.Context) error
 	DeleteNotification(ctx echo.Context) error
+	DeleteAllNotifications(ctx echo.Context) error
 }
 
 type NotificationHandler struct {
@@ -99,10 +100,16 @@ func (h *NotificationHandler) MarkAllAsRead(c echo.Context) error {
 func (h *NotificationHandler) DeleteNotification(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID := context.GetCtxFromUser(ctx)
-	notificationID := c.Param("id")
+	var req request.DeleteNotificationRequest
+	if err := c.Bind(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return errors.Wrap(ctx, err)
+	}
 
 	// 通知の所有権を確認
-	notification, err := h.notificationRepo.FindByID(ctx, notificationID)
+	notification, err := h.notificationRepo.FindByID(ctx, req.ID)
 	if err != nil {
 		return errors.MakeNotFoundError(ctx, "通知が取得できませんでした")
 	}
@@ -112,6 +119,18 @@ func (h *NotificationHandler) DeleteNotification(c echo.Context) error {
 	}
 
 	if err := h.notificationRepo.Delete(ctx, notification); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+// DeleteAllNotifications - 全通知を削除
+func (h *NotificationHandler) DeleteAllNotifications(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID := context.GetCtxFromUser(ctx)
+
+	if err := h.notificationRepo.DeleteAllByUserID(ctx, userID); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 

@@ -20,8 +20,15 @@ import { useRouter } from 'next/navigation'
 
 export default function CommonHeader() {
   const { user, logout } = useAuth()
-  const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } =
-    useNotifications()
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    removeAllNotifications,
+    clearAll,
+  } = useNotifications()
   const router = useRouter()
 
   console.log('通知', notifications)
@@ -101,7 +108,7 @@ export default function CommonHeader() {
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
-                      onClick={clearAll}
+                      onClick={removeAllNotifications}
                     >
                       <Trash2 className="h-3 w-3 mr-1" />
                       すべて削除

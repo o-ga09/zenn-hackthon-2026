@@ -31,6 +31,7 @@ interface NotificationContextType {
   markAsRead: (id: string, version: number) => void
   markAllAsRead: () => void
   removeNotification: (id: string) => void
+  removeAllNotifications: () => void
   clearAll: () => void
   fetchNotifications: () => Promise<void>
 }
@@ -128,6 +129,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, [])
 
+  const removeAllNotifications = useCallback(async () => {
+    try {
+      await notificationApi.deleteAllNotifications()
+      setNotifications([])
+    } catch (error) {
+      console.error('Failed to delete all notifications:', error)
+    }
+  }, [])
+
   const clearAll = useCallback(() => {
     setNotifications([])
   }, [])
@@ -143,6 +153,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         markAsRead,
         markAllAsRead,
         removeNotification,
+        removeAllNotifications,
         clearAll,
         fetchNotifications,
       }}
