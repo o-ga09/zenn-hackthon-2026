@@ -2,20 +2,57 @@ name: Deploy to Cloud Run for Frontend
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - 'frontend/**/*.ts'
-  #     - 'frontend/**/*.tsx'
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
 
 env:
-  SERVICE_NAME: frontend-service
+  SERVICE_NAME: tavinikkiy-agent-frontend
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: asia-northeast1
   GCP_REPOSITORY: frontend
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/cache@v3
+        id: node_modules_cache_id
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Configure docker for artifact registry
+        run: |
+          gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          platforms: linux/amd64
+          push: true
+          target: deploy
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        env:
+          IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
   deploy:
     runs-on: ubuntu-latest
   
@@ -30,86 +67,12 @@ jobs:
         with:
           version: 10.12.1
           node-version: 20
-
-      - uses: actions/cache@v3
-        id: node_modules_cache_id
-        env:
-          cache-name: cache-node-modules
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
- 
-      - if: ${{ steps.node_modules_cache_id.outputs.cache-hit != 'true' }}
-        run: | 
-          cd frontend
-          pnpm install
- 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pnpm
-            ${{ github.workspace }}/frontend/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-
- 
-      - name: Run build
-        run: |
-          cd frontend
-          pnpm run build
-        env:
-          NEXT_PUBLIC_FIREBASE_APIKEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_APIKEY }}
-          NEXT_PUBLIC_FIREBASE_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTHDOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}
-          NEXT_PUBLIC_FIREBASE_STORAGEBUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET }}
-          NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID }}
-          NEXT_PUBLIC_FIREBASE_APPID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}
-          NEXT_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}
-          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
-          NEXT_PUBLIC_FRONT_URL: ${{ secrets.NEXT_PUBLIC_FRONT_URL }}
-          R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRETKEY }}
-          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
-          R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
-          R2_PUBLIC_URL: ${{ secrets.CLOUDFLARE_R2_PUBLIC_URL }}
-          R2_PUBLIC_DOMAIN: ${{ secrets.CLOUDFLARE_R2_PUBLIC_DOMAIN }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-
-      - name: Run build proxy script
-        run: |
-          cd frontend/scripts
-          pnpm install
-          pnpm run build
  
       - uses: google-github-actions/auth@v1
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
- 
-      - name: Configure docker for artifact registry
-        run: |
-          gcloud auth configure-docker asia-northeast1-docker.pkg.dev
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64
       
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          platforms: linux/amd64
-          push: true
-          target: deploy
-          tags: ${{ env.IMAGE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-        env:
-          IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -117,52 +80,18 @@ jobs:
             --project ${{ env.GCP_PROJECT_ID }} \
             --region ${{ env.GCP_REGION }} \
             --platform=managed \
-            --no-allow-unauthenticated \
             --service-account=${{ secrets.SERVICE_ACCOUNT }} \
             --quiet \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_APIKEY=${{ secrets.NEXT_PUBLIC_FIREBASE_APIKEY }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTHDOMAIN }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_PROJECTID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}" \
-            --set-env-vars "NEXT_PUBLIC_FIREBASE_STORAGEBUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET }}" \
-            --set-env-vars "NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_APPID=${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_MEASUREMENTID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}" \
-            --set-env-vars "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}" \
             --set-env-vars "NEXT_PUBLIC_FRONT_URL=${{ secrets.NEXT_PUBLIC_FRONT_URL }}" \
             --set-env-vars "R2_ACCESS_KEY_ID=${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}" \
             --set-env-vars "R2_SECRET_ACCESS_KEY=${{ secrets.CLOUDFLARE_R2_SECRETKEY }}" \
             --set-env-vars "R2_ACCOUNT_ID=${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}" \
             --set-env-vars "R2_BUCKET_NAME=${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}" \
-            --set-env-vars "R2_PUBLIC_URL=${{ secrets.CLOUDFLARE_R2_PUBLIC_URL }}" \
-            --set-env-vars "R2_PUBLIC_DOMAIN=${{ secrets.CLOUDFLARE_R2_PUBLIC_DOMAIN }}" \
             --set-env-vars "BACKEND_API_URL=${{ secrets.BACKEND_API_URL }}" \
-            --set-env-vars "TARGET_AUDIENCE=${{ secrets.TARGET_AUDIENCE_BACKEND }}"
         env:
           IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-
-      - name: Deploy Proxy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-          workingDirectory: 'frontend/scripts'
-          secrets: |
-            CLOUD_RUN_FRONT_URL
-            R2_STATIC_DOMAIN
-        env:
-          CLOUD_RUN_FRONT_URL: ${{ secrets.CLOUD_RUN_FRONT_URL }}
-          R2_STATIC_DOMAIN: ${{ secrets.R2_STATIC_DOMAIN }}
-          TARGET_AUDIENCE: ${{ secrets.TARGET_AUDIENCE_FRONTEND }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-
-      - name: Upload Static file
-        run: | 
-          cd frontend
-          pnpm i
-          pnpm run upload-assets
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}
-          R2_SECRET_KEY: ${{ secrets.CLOUDFLARE_R2_SECRETKEY }}
-          R2_BUCKET_NAME: "static-tavinikkiy"
