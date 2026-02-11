@@ -6,7 +6,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 COPY . .
 ENV SKIP_PREPARE='true'
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 RUN pnpm run build
 
 # --------------------------------------------------
