@@ -28,6 +28,12 @@ jobs:
           version: 10.12.1
           node-version: 20
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
       - uses: actions/cache@v3
         id: node_modules_cache_id
         env:
