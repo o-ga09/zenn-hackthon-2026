@@ -19,7 +19,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --chown=nextjs:nodejs ./.next ./.next
-COPY --chown=nextjs:nodejs ./next.config.mjs ./
+COPY --chown=nextjs:nodejs ./next.config.ts ./
 
 USER nextjs
 
