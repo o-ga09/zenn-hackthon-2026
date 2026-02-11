@@ -21,6 +21,13 @@ jobs:
       contents: read
 
     steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+          node-version: 20
+
       - uses: actions/cache@v3
         id: node_modules_cache_id
         env:
