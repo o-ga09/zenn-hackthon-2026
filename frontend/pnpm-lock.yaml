@@ -47,6 +47,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.1.18
       '@tanstack/react-query':
         specifier: ^5.87.4
         version: 5.90.16(react@19.1.0)
@@ -104,6 +107,12 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
+      tailwindcss:
+        specifier: ^4
+        version: 4.1.18
+      tw-animate-css:
+        specifier: ^1.3.8
+        version: 1.4.0
       ulid:
         specifier: ^3.0.1
         version: 3.0.2
@@ -114,9 +123,6 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.3.3
-      '@tailwindcss/postcss':
-        specifier: ^4
-        version: 4.1.18
       '@types/node':
         specifier: ^20
         version: 20.19.27
@@ -147,15 +153,9 @@ importers:
       shadcn:
         specifier: ^3.2.1
         version: 3.6.3(@types/node@20.19.27)(hono@4.11.3)(typescript@5.9.3)
-      tailwindcss:
-        specifier: ^4
-        version: 4.1.18
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.27)(typescript@5.9.3)
-      tw-animate-css:
-        specifier: ^1.3.8
-        version: 1.4.0
       typescript:
         specifier: ^5
         version: 5.9.3

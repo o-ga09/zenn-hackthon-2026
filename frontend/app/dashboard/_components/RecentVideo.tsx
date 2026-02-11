@@ -62,6 +62,7 @@ export default function RecentVideo() {
       if (successCount > 0) {
         console.log('[RecentVideo] 成功通知を追加')
         addNotification({
+          version: 0,
           type: 'success',
           title: '分析完了',
           message: `${successCount}個のメディアの分析が完了しました`,
@@ -71,6 +72,7 @@ export default function RecentVideo() {
       if (failedCount > 0) {
         console.log('[RecentVideo] エラー通知を追加')
         addNotification({
+          version: 0,
           type: 'error',
           title: '分析エラー',
           message: `${failedCount}個のメディアの分析に失敗しました`,
@@ -84,6 +86,7 @@ export default function RecentVideo() {
     onError: error => {
       console.error('[SSE] Error:', error)
       addNotification({
+        version: 0,
         type: 'error',
         title: '接続エラー',
         message: 'メディア分析の進捗監視中にエラーが発生しました',

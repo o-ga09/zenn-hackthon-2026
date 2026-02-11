@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
+import { useGetTravelsByUserId } from '@/api/travelApi'
 
 // フィルタータイプの定義
 type FilterStatus = '全て' | '完成' | '処理中'
