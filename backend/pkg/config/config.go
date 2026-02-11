@@ -25,7 +25,7 @@ const CtxGenAIKey GenAIConfig = "genai_config"
 type Config struct {
 	Env                       string `env:"ENV" envDefault:"dev"`
 	Port                      string `env:"PORT" envDefault:"8080"`
-	Database_url              string `env:"DATABASE_URL" envDefault:""`
+	Database_url              string `env:"DATABASE_URL_FOR_AGENT_TAVINIKKIY" envDefault:""`
 	Sentry_DSN                string `env:"SENTRY_DSN" envDefault:""`
 	ProjectID                 string `env:"PROJECT_ID" envDefault:"tavinikkiy"`
 	CLOUDFLARE_R2_ACCOUNT_ID  string `env:"CLOUDFLARE_R2_ACCOUNT_ID" envDefault:""`
@@ -37,8 +37,8 @@ type Config struct {
 	BASE_URL                  string `env:"BASE_URL" envDefault:"http://localhost:3000"`
 	GCS_TEMP_BUCKET           string `env:"GCS_TEMP_BUCKET" envDefault:"tavinikkiy-temp"`
 	GCS_LOCATION              string `env:"GCS_LOCATION" envDefault:"us-central1"`
-	CLOUD_TASKS_QUEUE_NAME    string `env:"CLOUD_TASKS_QUEUE_NAME" envDefault:"vlog-processing-queue"`
-	CLOUD_TASKS_LOCATION      string `env:"CLOUD_TASKS_LOCATION" envDefault:"us-central1"`
+	CLOUD_TASKS_QUEUE_NAME    string `env:"CLOUD_TASKS_QUEUE_NAME" envDefault:"tavinikkiy-agent-queue"`
+	CLOUD_TASKS_LOCATION      string `env:"CLOUD_TASKS_LOCATION" envDefault:"asia-northeast1"`
 	SERVICE_ACCOUNT_EMAIL     string `env:"SERVICE_ACCOUNT_EMAIL" envDefault:""`
 }
 
