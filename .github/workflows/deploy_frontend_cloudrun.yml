@@ -67,7 +67,7 @@ jobs:
           NEXT_PUBLIC_FIREBASE_PROJECTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}
           NEXT_PUBLIC_FIREBASE_APPID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}
-          NEXT_PUBLIC_API_BASE_URL: https://api.agent.tavinikkiy.com
+          NEXT_PUBLIC_API_BASE_URL: https://api-agent.tavinikkiy.com
           R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRETKEY }}
           R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
@@ -131,7 +131,7 @@ jobs:
             --set-env-vars "NEXT_PUBLIC_FIREBASE_PROJECTID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_APPID=${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_MEASUREMENTID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}" \
-            --set-env-vars "NEXT_PUBLIC_API_BASE_URL=https://api.agent.tavinikkiy.com" \
+            --set-env-vars "NEXT_PUBLIC_API_BASE_URL=https://api-agent.tavinikkiy.com" \
             --set-env-vars "R2_ACCESS_KEY_ID=${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}" \
             --set-env-vars "R2_SECRET_ACCESS_KEY=${{ secrets.CLOUDFLARE_R2_SECRETKEY }}" \
             --set-env-vars "R2_ACCOUNT_ID=${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}" \
