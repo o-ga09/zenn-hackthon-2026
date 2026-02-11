@@ -2,8 +2,6 @@ name: Deploy to Cloud Run for Backend
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
 
