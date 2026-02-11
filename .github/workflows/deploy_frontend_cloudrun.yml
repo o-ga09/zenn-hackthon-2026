@@ -67,12 +67,11 @@ jobs:
           NEXT_PUBLIC_FIREBASE_PROJECTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}
           NEXT_PUBLIC_FIREBASE_APPID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}
-          NEXT_PUBLIC_FRONT_URL: ${{ secrets.NEXT_PUBLIC_FRONT_URL }}
+          NEXT_PUBLIC_API_BASE_URL: https://agent.tavinikkiy.com
           R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRETKEY }}
           R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
           R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
-          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
 
       - name: Configure docker for artifact registry
         run: |
@@ -124,6 +123,7 @@ jobs:
             --project ${{ env.GCP_PROJECT_ID }} \
             --region ${{ env.GCP_REGION }} \
             --platform=managed \
+            --allow-unauthenticated \
             --service-account=${{ secrets.SERVICE_ACCOUNT }} \
             --quiet \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_APIKEY=${{ secrets.NEXT_PUBLIC_FIREBASE_APIKEY }}" \
@@ -131,11 +131,10 @@ jobs:
             --set-env-vars "NEXT_PUBLIC_FIREBASE_PROJECTID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_APPID=${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}" \
             --set-env-vars "NEXT_PUBLIC_FIREBASE_MEASUREMENTID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}" \
-            --set-env-vars "NEXT_PUBLIC_FRONT_URL=${{ secrets.NEXT_PUBLIC_FRONT_URL }}" \
+            --set-env-vars "NEXT_PUBLIC_API_BASE_URL=https://agent.tavinikkiy.com" \
             --set-env-vars "R2_ACCESS_KEY_ID=${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}" \
             --set-env-vars "R2_SECRET_ACCESS_KEY=${{ secrets.CLOUDFLARE_R2_SECRETKEY }}" \
             --set-env-vars "R2_ACCOUNT_ID=${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}" \
             --set-env-vars "R2_BUCKET_NAME=${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}" \
-            --set-env-vars "BACKEND_API_URL=${{ secrets.BACKEND_API_URL }}" \
         env:
           IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}

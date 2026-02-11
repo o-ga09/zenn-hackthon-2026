@@ -138,7 +138,7 @@ func CORS() echo.MiddlewareFunc {
 	return middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{
 			"http://localhost:3000",
-			"https://tavinikkiy.com",
+			"https://agent.tavinikkiy.com",
 		},
 		AllowMethods: []string{
 			echo.POST,
