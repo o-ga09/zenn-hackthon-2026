@@ -8,6 +8,7 @@ COPY package.json ./
 COPY pnpm-lock.yaml ./
 ENV SKIP_PREPARE='true'
 RUN pnpm install --prod --frozen-lockfile
+RUN pnpm run build
 
 # --------------------------------------------------
 # Production stage
@@ -18,7 +19,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --chown=nextjs:nodejs ./.next ./.next
+COPY --from=deps --chown=nextjs:nodejs /app/.next ./.next
+COPY --chown=nextjs:nodejs ./public ./public
 COPY --chown=nextjs:nodejs ./next.config.ts ./
 
 USER nextjs
