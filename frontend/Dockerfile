@@ -4,8 +4,7 @@ LABEL build-stage=installer
 RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
 WORKDIR /app
-COPY package.json ./
-COPY pnpm-lock.yaml ./
+COPY . .
 ENV SKIP_PREPARE='true'
 RUN pnpm install --prod --frozen-lockfile
 RUN pnpm run build
