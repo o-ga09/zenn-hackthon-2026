@@ -35,26 +35,23 @@ jobs:
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-
-      - if: ${{ steps.node_modules_cache_id.outputs.cache-hit != 'true' }}
-        run: | 
-          cd frontend
-          pnpm install
- 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pnpm
-            ${{ github.workspace }}/frontend/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-
     
       - name: Run build
         run: |
           cd frontend
           pnpm run build
+        env:
+          NEXT_PUBLIC_FIREBASE_APIKEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_APIKEY }}
+          NEXT_PUBLIC_FIREBASE_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTHDOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}
+          NEXT_PUBLIC_FIREBASE_APPID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}
+          NEXT_PUBLIC_FRONT_URL: ${{ secrets.NEXT_PUBLIC_FRONT_URL }}
+          R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRETKEY }}
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
 
       - name: Configure docker for artifact registry
         run: |
