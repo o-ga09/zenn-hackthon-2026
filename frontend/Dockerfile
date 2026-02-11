@@ -4,10 +4,10 @@ LABEL build-stage=installer
 RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
 WORKDIR /app
-COPY . .
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 ENV SKIP_PREPARE='true'
-RUN pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN pnpm install --prod --frozen-lockfile
 
 # --------------------------------------------------
 # Production stage
@@ -18,9 +18,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=deps --chown=nextjs:nodejs /app/.next ./.next
-COPY --chown=nextjs:nodejs ./public ./public
-COPY --chown=nextjs:nodejs ./next.config.ts ./
+COPY --chown=nextjs:nodejs ./.next ./.next
+COPY --chown=nextjs:nodejs ./next.config.mjs ./
 
 USER nextjs
 
