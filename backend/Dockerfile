@@ -19,6 +19,7 @@ RUN apt-get install -y ca-certificates openssl
 EXPOSE "8080"
 
 COPY --from=deploy-builder /app/main .
+COPY --from=deploy-builder /app/prompts ./prompts
 
 CMD ["./main"]
 
