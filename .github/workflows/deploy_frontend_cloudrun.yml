@@ -171,7 +171,7 @@ jobs:
           aws s3 sync public s3://${{ secrets.CLOUDFLARE_R2_STATIC_ASSET_BUCKET_NAME }}/ \
             --endpoint-url https://${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}.r2.cloudflarestorage.com \
             --cache-control "public, max-age=31536000, immutable" \
-            --delete
+
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRETKEY }}
