@@ -17,13 +17,13 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 # Copy standalone build (includes minimal node_modules)
 COPY --chown=nextjs:nodejs ./.next/standalone ./
 # Copy static assets
 COPY --chown=nextjs:nodejs ./.next/static ./.next/static
 # Copy public directory
 COPY --chown=nextjs:nodejs ./public ./public
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 
