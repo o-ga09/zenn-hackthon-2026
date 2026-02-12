@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: next-static
-          path: frontend/.next/static
+          path: frontend/.next
           retention-days: 1
 
       - name: Upload assets file as artifact
