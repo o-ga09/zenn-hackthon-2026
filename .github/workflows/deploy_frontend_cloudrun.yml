@@ -86,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: next-assets
-          path: frontend/public/
+          path: frontend/public
           retention-days: 1
 
 
@@ -105,13 +105,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: next-static
-          path: .next/
+          path: .next/static
 
       - name: Download assets file artifact
         uses: actions/download-artifact@v4
         with:
           name: next-assets
-          path: public/
+          path: public
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -150,13 +150,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: next-static
-          path: .next/
+          path: .next/static
 
       - name: Download assets file artifact
         uses: actions/download-artifact@v4
         with:
           name: next-assets
-          path: public/
+          path: public
 
       - name: Install AWS CLI
         run: |
