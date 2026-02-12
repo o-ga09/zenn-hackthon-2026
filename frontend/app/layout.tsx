@@ -85,6 +85,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://static-agent.tavinikkiy.com" />
+        <link rel="dns-prefetch" href="https://static-agent.tavinikkiy.com" />
+      </head>
       <body className="overflow-x-hidden" suppressHydrationWarning>
         <ApiProvider>
           <AuthProvider>
