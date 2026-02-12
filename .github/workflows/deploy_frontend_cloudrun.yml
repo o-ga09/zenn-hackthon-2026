@@ -82,6 +82,13 @@ jobs:
           path: frontend/.next/static
           retention-days: 1
 
+      - name: Upload stand alone as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-standalone
+          path: frontend/.next/standalone
+          retention-days: 1
+
       - name: Upload assets file as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -105,13 +112,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: next-static
-          path: .next/static
+          path: frontend/.next/static
+
+      - name: Download stand alone artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-standalone
+          path: frontend/.next/standalone
 
       - name: Download assets file artifact
         uses: actions/download-artifact@v4
         with:
           name: next-assets
-          path: public
+          path: frontend/public
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
