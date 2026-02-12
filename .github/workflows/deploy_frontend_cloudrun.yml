@@ -82,6 +82,14 @@ jobs:
           path: frontend/.next/static
           retention-days: 1
 
+      - name: Upload assets file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-assets
+          path: frontend/public
+          retention-days: 1
+
+
   docker-build:
     runs-on: ubuntu-latest
     needs: build
@@ -131,6 +139,12 @@ jobs:
         with:
           name: next-static
           path: .next/static
+
+      - name: Download assets file artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-assets
+          path: public
 
       - name: Install AWS CLI
         run: |
