@@ -18,6 +18,10 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --chown=nextjs:nodejs ./.next/standalone ./
+
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/firebase-admin ./node_modules/firebase-admin
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@firebase ./node_modules/@firebase
+
 COPY --chown=nextjs:nodejs ./.next/static ./.next/static
 COPY --chown=nextjs:nodejs ./public ./public
 
