@@ -6,8 +6,10 @@ RUN npm install -g pnpm
 WORKDIR /app
 COPY package.json ./
 COPY pnpm-lock.yaml ./
+COPY . .
 ENV SKIP_PREPARE='true'
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
+RUN pnpm build
 
 # --------------------------------------------------
 # Production stage
@@ -17,18 +19,16 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --chown=nextjs:nodejs ./.next/standalone ./
+COPY --chown=nextjs:nodejs --from=deps /app/.next/standalone ./
+COPY --chown=nextjs:nodejs --from=deps /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs --from=deps /app/public ./public
 
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/firebase-admin ./node_modules/firebase-admin
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/firebase ./node_modules/firebase
 
-COPY --chown=nextjs:nodejs ./.next/static ./.next/static
-COPY --chown=nextjs:nodejs ./public ./public
-
 USER nextjs
 
 EXPOSE 8080
-
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
