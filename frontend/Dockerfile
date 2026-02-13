@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 LABEL build-stage=installer
 RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
@@ -11,7 +11,7 @@ RUN pnpm install --prod --frozen-lockfile
 
 # --------------------------------------------------
 # Production stage
-FROM node:18-alpine AS deploy
+FROM node:20-alpine AS deploy
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs

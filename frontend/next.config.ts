@@ -2,9 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['firebase-admin'],
-  },
+  serverExternalPackages: ['firebase-admin'],
   assetPrefix: process.env.NODE_ENV === 'production' ? 'https://static-agent.tavinikkiy.com' : '',
   /* config options here */
   images: {
