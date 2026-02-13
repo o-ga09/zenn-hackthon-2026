@@ -22,13 +22,14 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
       - name: Install dependencies
         run: |
           cd frontend
+          rm -f pnpm-lock.yaml
           npm install
 
       - name: Run lint
@@ -62,14 +63,15 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
       - name: Install dependencies
         run: |
           cd frontend
-          npm install
+          rm -f .npmrc pnpm-lock.yaml
+          npm install --legacy-peer-deps
 
       - name: Run test
         run: |
