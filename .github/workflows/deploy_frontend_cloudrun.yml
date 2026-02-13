@@ -112,19 +112,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: next-static
-          path: .next/static
+          path: frontend/.next/static
 
       - name: Download standalone files artifact
         uses: actions/download-artifact@v4
         with:
           name: next-standalone
-          path: .next/standalone
+          path: frontend/.next/standalone
 
       - name: Download assets file artifact
         uses: actions/download-artifact@v4
         with:
           name: next-assets
-          path: public
+          path: frontend/public
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
