@@ -6,9 +6,9 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --chown=nextjs:nodejs ./.next/standalone ./
-COPY --chown=nextjs:nodejs ./.next/static ./.next/static
-COPY --chown=nextjs:nodejs ./public ./public
+COPY --chown=nextjs:nodejs .next/standalone .next/standalone
+COPY --chown=nextjs:nodejs .next/static .next/static
+COPY --chown=nextjs:nodejs public public
 
 USER nextjs
 
@@ -16,7 +16,7 @@ EXPOSE 8080
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["node", ".next/standalone/server.js"]
 
 # --------------------------------------------------
 # dev
