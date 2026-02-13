@@ -1,5 +1,26 @@
-# Build stage
-FROM node:20-alpine AS deps
+# --------------------------------------------------
+# Production stage
+FROM node:20-alpine AS deploy
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --chown=nextjs:nodejs ./.next/standalone ./
+COPY --chown=nextjs:nodejs ./.next/static ./.next/static
+COPY --chown=nextjs:nodejs ./public ./public
+
+USER nextjs
+
+EXPOSE 8080
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
+
+# --------------------------------------------------
+# dev
+FROM node:20-alpine AS dev
 LABEL build-stage=installer
 RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
@@ -9,27 +30,5 @@ COPY pnpm-lock.yaml ./
 COPY . .
 ENV SKIP_PREPARE='true'
 RUN pnpm install --frozen-lockfile
-RUN pnpm build
-
-# --------------------------------------------------
-# Production stage
-FROM node:20-alpine AS deploy
-WORKDIR /app
-ENV NODE_ENV=production
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --chown=nextjs:nodejs --from=deps /app/.next/standalone ./
-COPY --chown=nextjs:nodejs --from=deps /app/.next/static ./.next/static
-COPY --chown=nextjs:nodejs --from=deps /app/public ./public
-
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/firebase-admin ./node_modules/firebase-admin
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/firebase ./node_modules/firebase
-
-USER nextjs
-
-EXPOSE 8080
-ENV PORT=8080
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
+EXPOSE 3000
+CMD ["pnpm", "run", "dev"]
