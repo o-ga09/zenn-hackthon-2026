@@ -82,13 +82,6 @@ jobs:
           path: frontend/.next/static
           retention-days: 1
 
-      - name: Upload stand alone as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-standalone
-          path: frontend/.next/standalone
-          retention-days: 1
-
       - name: Upload assets file as artifact
         uses: actions/upload-artifact@v4
         with:
