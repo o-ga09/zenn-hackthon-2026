@@ -6,11 +6,8 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# standaloneビルドの内容を/appにコピー（server.jsと.next/が含まれる）
 COPY --chown=nextjs:nodejs .next/standalone ./
-# staticファイルを上書き（standaloneの.nextにマージ）
 COPY --chown=nextjs:nodejs .next/static ./.next/static
-# publicディレクトリをコピー
 COPY --chown=nextjs:nodejs public ./public
 
 USER nextjs
@@ -19,16 +16,7 @@ EXPOSE 8080
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
-# デバッグ用: 起動時にディレクトリ構造を確認
-CMD ["sh", "-c", "echo '=== Checking directory structure ===' && \
-    ls -la /app && \
-    echo '=== Checking .next directory ===' && \
-    ls -la /app/.next && \
-    echo '=== Checking BUILD_ID ===' && \
-    cat /app/.next/BUILD_ID && \
-    echo '' && \
-    echo '=== Starting Next.js server ===' && \
-    node /app/server.js"]
+CMD ["node", "server.js"]
 
 # --------------------------------------------------
 # dev
