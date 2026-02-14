@@ -97,6 +97,7 @@ jobs:
           name: next-standalone
           path: frontend/.next/standalone
           retention-days: 1
+          include-hidden-files: true
 
       - name: Upload assets file as artifact
         uses: actions/upload-artifact@v4
