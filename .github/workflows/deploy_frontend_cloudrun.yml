@@ -43,11 +43,13 @@ jobs:
           key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - if: ${{ steps.node_modules_cache_id.outputs.cache-hit != 'true' }}
+        name: Install dependencies
         run: |
           cd frontend
           pnpm install
 
       - uses: actions/cache@v3
+        name: Cache Next.js build
         with:
           path: |
             ~/.pnpm
@@ -57,7 +59,7 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
             ${{ runner.os }}-nextjs-
 
-      - name: Run build
+      - name: Next.js build
         run: |
           cd frontend
           pnpm run build
