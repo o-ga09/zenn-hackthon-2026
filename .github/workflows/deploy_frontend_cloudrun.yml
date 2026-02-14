@@ -34,30 +34,31 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
 
-      # - uses: actions/cache@v3
-      #   id: node_modules_cache_id
-      #   env:
-      #     cache-name: cache-node-modules
-      #   with:
-      #     path: '**/node_modules'
-      #     key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - uses: actions/cache@v3
+        id: node_modules_cache_id
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # if: ${{ steps.node_modules_cache_id.outputs.cache-hit != 'true' }}
-      - name: Install dependencies
+      
+      - if: ${{ steps.node_modules_cache_id.outputs.cache-hit != 'true' }}
+        name: Install dependencies
         run: |
           cd frontend
           pnpm install
 
-      # - uses: actions/cache@v3
-      #   name: Cache Next.js build
-      #   with:
-      #     path: |
-      #       ~/.pnpm
-      #       ${{ github.workspace }}/frontend/.next/cache
-      #     key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
-      #       ${{ runner.os }}-nextjs-
+      - uses: actions/cache@v3
+        name: Cache Next.js build
+        with:
+          path: |
+            ~/.pnpm
+            ${{ github.workspace }}/frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
 
       - name: Next.js build
         run: |
