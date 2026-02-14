@@ -6,8 +6,11 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --chown=nextjs:nodejs .next/standalone ./.next/standalone
+# standaloneビルドの内容を/appにコピー（server.jsと.next/が含まれる）
+COPY --chown=nextjs:nodejs .next/standalone ./
+# staticファイルを上書き（standaloneの.nextにマージ）
 COPY --chown=nextjs:nodejs .next/static ./.next/static
+# publicディレクトリをコピー
 COPY --chown=nextjs:nodejs public ./public
 
 USER nextjs
@@ -21,12 +24,11 @@ CMD ["sh", "-c", "echo '=== Checking directory structure ===' && \
     ls -la /app && \
     echo '=== Checking .next directory ===' && \
     ls -la /app/.next && \
-    echo '=== Checking .next/standalone ===' && \
-    ls -la /app/.next/standalone && \
-    echo '=== Checking .next/static ===' && \
-    ls -la /app/.next/static && \
+    echo '=== Checking BUILD_ID ===' && \
+    cat /app/.next/BUILD_ID && \
+    echo '' && \
     echo '=== Starting Next.js server ===' && \
-    node /app/.next/standalone/server.js"]
+    node /app/server.js"]
 
 # --------------------------------------------------
 # dev
