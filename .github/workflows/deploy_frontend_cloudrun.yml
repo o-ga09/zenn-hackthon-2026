@@ -23,8 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: pnpm/action-setup@v2
         with:
+          version: 10.12.1
           node-version: 20
 
       - name: Authenticate to Google Cloud
@@ -34,31 +35,32 @@ jobs:
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
 
       - uses: actions/cache@v3
+        id: node_modules_cache_id
+        env:
+          cache-name: cache-node-modules
         with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          path: '**/node_modules'
+          key: ${{ runner.os }}-setup-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - name: Install dependencies
+      - if: ${{ steps.node_modules_cache_id.outputs.cache-hit != 'true' }}
         run: |
           cd frontend
-          rm -f pnpm-lock.yaml
-          npm install
+          pnpm install
 
       - uses: actions/cache@v3
         with:
           path: |
+            ~/.pnpm
             ${{ github.workspace }}/frontend/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package.json') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx') }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package.json') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
             ${{ runner.os }}-nextjs-
 
       - name: Run build
         run: |
           cd frontend
-          npm run build
+          pnpm run build
         env:
           NEXT_PUBLIC_FIREBASE_APIKEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_APIKEY }}
           NEXT_PUBLIC_FIREBASE_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTHDOMAIN }}
@@ -199,8 +201,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: pnpm/action-setup@v2
         with:
+          version: 10.12.1
           node-version: 20
 
       - uses: google-github-actions/auth@v1
