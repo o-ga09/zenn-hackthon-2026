@@ -2,3 +2,5 @@ ignoredBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
   - prisma
+publicHoistPattern:
+  - 'styled-jsx'
