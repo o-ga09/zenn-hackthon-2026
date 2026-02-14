@@ -31,7 +31,6 @@ export default function CommonHeader() {
   } = useNotifications()
   const router = useRouter()
 
-  console.log('通知', notifications)
   const handleLogout = async () => {
     try {
       await logout()
