@@ -20,8 +20,7 @@ func (r *MediaRepository) List(ctx context.Context, opts *domain.ListOpts) ([]*d
 
 func (r *MediaRepository) GetByID(ctx context.Context, id string) (*domain.Media, error) {
 	var media *domain.Media
-	userID := Ctx.GetCtxFromUser(ctx)
-	if err := Ctx.GetDB(ctx).Where("id = ? AND create_user_id = ?", id, userID).First(&media).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Where("id = ?", id).First(&media).Error; err != nil {
 		return nil, err
 	}
 	return media, nil
