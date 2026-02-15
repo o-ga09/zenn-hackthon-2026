@@ -70,7 +70,12 @@ func (c *CloudTaskClient) Enqueue(ctx context.Context, task *queue.Task) error {
 		},
 	}
 
-	_, err = c.client.CreateTask(ctx, req)
+	// NOTE: 親ctxのデッドラインをCloud Tasks APIリクエストに引き継がないよう、
+	// 値のみ伝播する新しいコンテキストを使用する
+	apiCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
+	_, err = c.client.CreateTask(apiCtx, req)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
