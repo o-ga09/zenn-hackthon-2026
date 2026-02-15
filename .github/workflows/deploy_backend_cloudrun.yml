@@ -7,6 +7,7 @@ on:
 
 env:
   SERVICE_NAME: tavinikkiy-agent-backend
+  SERVICE_NAME_FOR_WORKER: tavinikkiy-agent-worker
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: asia-northeast1
   GCP_REPOSITORY: backend-migration
@@ -69,7 +70,7 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Cloud Run For API
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE }} \
@@ -77,6 +78,31 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
+            --service-account=${{ secrets.SERVICE_ACCOUNT }} \
+            --quiet \
+            --update-secrets=DATABASE_URL_FOR_AGENT_TAVINIKKIY=DATABASE_URL_FOR_AGENT_TAVINIKKIY:latest \
+            --set-env-vars "SERVICE_NAME=tavinikkiy-agent" \
+            --set-env-vars "LOG_LEVEL=info" \
+            --set-env-vars "CLOUDFLARE_R2_ACCOUNT_ID=${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}" \
+            --set-env-vars "CLOUDFLARE_R2_ACCESSKEY=${{ secrets.CLOUDFLARE_R2_ACCESSKEY }}" \
+            --set-env-vars "CLOUDFLARE_R2_SECRETKEY=${{ secrets.CLOUDFLARE_R2_SECRETKEY }}" \
+            --set-env-vars "CLOUDFLARE_R2_BUCKET_NAME=${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}" \
+            --set-env-vars "CLOUDFLARE_R2_REGION=${{ secrets.CLOUDFLARE_R2_REGION }}" \
+            --set-env-vars "PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
+            --set-env-vars "ENV=PROD" \
+            --set-env-vars "SERVICE_ACCOUNT_EMAIL=${{ secrets.SERVICE_ACCOUNT }}" \
+            --set-env-vars "BASE_URL=https://agent.tavinikkiy.com"
+        env:
+          IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Cloud Run For Worker
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME_FOR_WORKER }} \
+            --image ${{ env.IMAGE }} \
+            --project ${{ env.GCP_PROJECT_ID }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform=managed \
+            --no-allow-unauthenticated \
             --service-account=${{ secrets.SERVICE_ACCOUNT }} \
             --quiet \
             --update-secrets=DATABASE_URL_FOR_AGENT_TAVINIKKIY=DATABASE_URL_FOR_AGENT_TAVINIKKIY:latest \
