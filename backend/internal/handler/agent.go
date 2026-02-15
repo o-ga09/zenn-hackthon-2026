@@ -185,14 +185,14 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 
 	var task queue.Task
 	if err := c.Bind(&task); err != nil {
-		return c.NoContent(http.StatusBadRequest)
+		return errors.Wrap(ctx, err)
 	}
 
 	if err := s.executeVLogGeneration(ctx, &task); err != nil {
 		return errors.Wrap(ctx, err)
 	}
 
-	return c.NoContent(http.StatusOK)
+	return c.NoContent(http.StatusNoContent)
 }
 
 // executeVLogGeneration はVLog生成のコアロジックを実行する
@@ -200,13 +200,13 @@ func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Tas
 	// タスクデータから*agent.VlogInputを取得
 	vlogInput, ok := task.Data.(*agent.VlogInput)
 	if !ok {
-		return fmt.Errorf("invalid task data type for VLog generation: expected *agent.VlogInput")
+		return errors.MakeBusinessError(ctx, "invalid task data type for VLog generation: expected *agent.VlogInput")
 	}
 
 	// 最新のVlogレコードを取得
 	vlogRef, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: task.ID}})
 	if err != nil {
-		return err
+		return errors.Wrap(ctx, err)
 	}
 
 	// ステータスをPROCESSINGに更新
@@ -233,7 +233,7 @@ func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Tas
 				_ = s.vlogRepo.Update(ctx, latestVlog)
 			}
 		})
-		return err
+		return errors.Wrap(ctx, err)
 	})
 
 	if err != nil {
