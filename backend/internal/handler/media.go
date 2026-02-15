@@ -57,7 +57,7 @@ func (s *ImageServer) List(c echo.Context) error {
 
 	mediaResponses := make([]*response.MediaListItem, 0, len(medias))
 	for _, media := range medias {
-		var url string
+		url := media.URL.String
 		// NOTE: ローカル環境でフロントエンドで取得できるようにURLを置換
 		if env.Env == "local" {
 			url = strings.ReplaceAll(media.URL.String, "localstack", "localhost")
