@@ -248,6 +248,6 @@ func (s *CloudflareR2Storage) List(ctx context.Context, prefix string) (map[stri
 	return base64ImagesMap, nil
 }
 
-func ObjectURKFromKey(endpoint, bucketName, key string) string {
-	return fmt.Sprintf("%s/%s/%s", endpoint, bucketName, key)
+func ObjectURKFromKey(endpoint, key string) string {
+	return fmt.Sprintf("%s/%s", endpoint, key)
 }

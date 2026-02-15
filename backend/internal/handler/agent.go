@@ -350,9 +350,9 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 			return nil, fmt.Errorf("failed to upload file %s: %w", fileHeader.Filename, err)
 		}
 
-		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
 		if env.Env == "local" {
-			url = storage.ObjectURKFromKey("http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+			url = fmt.Sprintf("%s/%s/%s", "http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, key)
 		}
 
 		// MediaItemを作成
@@ -497,9 +497,9 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 
 		env := config.GetCtxEnv(ctx)
 
-		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
 		if env.Env == "local" {
-			url = storage.ObjectURKFromKey("http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+			url = fmt.Sprintf("%s/%s/%s", "http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, key)
 		}
 
 		mediaItems = append(mediaItems, agent.MediaItem{

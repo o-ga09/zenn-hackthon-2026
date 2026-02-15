@@ -51,7 +51,7 @@ func DefineUploadMediaTool(g *genkit.Genkit) ai.Tool {
 
 			env := config.GetCtxEnv(ctx)
 			return UploadMediaOutput{
-				URL:     storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey),
+				URL:     storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey),
 				Key:     input.Key,
 				Success: true,
 			}, nil

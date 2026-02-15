@@ -61,7 +61,7 @@ func (s *ImageServer) List(c echo.Context) error {
 		var url string
 		if media.URL.Valid {
 			objectKey := fmt.Sprintf("%s%s%s", media.URL.String, media.ID, image.GetExtensionFromContentType(media.ContentType))
-			url = storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+			url = storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
 		}
 		mediaResponses = append(mediaResponses, &response.MediaListItem{
 			ID:          media.ID,
