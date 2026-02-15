@@ -10,7 +10,6 @@ import (
 	"cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/queue"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
-	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 type CloudTaskClient struct {
@@ -65,8 +64,6 @@ func (c *CloudTaskClient) Enqueue(ctx context.Context, task *queue.Task) error {
 					},
 				},
 			},
-			// DispatchDeadlineを30秒に設定（Cloud Tasksの最大値）
-			DispatchDeadline: durationpb.New(30 * time.Second),
 		},
 	}
 
