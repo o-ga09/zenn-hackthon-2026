@@ -88,6 +88,7 @@ jobs:
             --set-env-vars "CLOUDFLARE_R2_SECRETKEY=${{ secrets.CLOUDFLARE_R2_SECRETKEY }}" \
             --set-env-vars "CLOUDFLARE_R2_BUCKET_NAME=${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}" \
             --set-env-vars "CLOUDFLARE_R2_REGION=${{ secrets.CLOUDFLARE_R2_REGION }}" \
+            --set-env-vars "CLOUDFLARE_R2_PUBLIC_URL=${{ secrets.CLOUDFLARE_R2_PUBLIC_URL }}" \
             --set-env-vars "PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
             --set-env-vars "ENV=PROD" \
             --set-env-vars "SERVICE_ACCOUNT_EMAIL=${{ secrets.SERVICE_ACCOUNT }}" \
