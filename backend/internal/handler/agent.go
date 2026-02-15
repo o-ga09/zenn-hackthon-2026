@@ -25,6 +25,7 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/image"
 	nullvalue "github.com/o-ga09/zenn-hackthon-2026/pkg/null_value"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
+	"gorm.io/gorm"
 )
 
 type IAgentServer interface {
@@ -102,11 +103,21 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 			if err != nil {
 				continue
 			}
+			isAnalyzed := false
+			mediaAnalytics, err := s.mediaAnalyticsRepo.FindByFileID(ctx, media.ID)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.Wrap(ctx, err)
+			}
+			if mediaAnalytics != nil {
+				isAnalyzed = true
+			}
+
 			mediaItems = append(mediaItems, agent.MediaItem{
 				FileID:      media.ID,
 				URL:         media.URL.String,
 				ContentType: media.ContentType,
 				Type:        detectMediaType(media.ContentType),
+				IsAnalyzed:  isAnalyzed,
 			})
 		}
 	}

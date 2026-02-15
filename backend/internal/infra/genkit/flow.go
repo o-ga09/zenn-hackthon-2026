@@ -37,7 +37,7 @@ func RegisterVlogFlow(g *genkit.Genkit, registeredTools *RegisteredTools) VlogFl
 		// Step 1: メディア分析
 		analysisResults, err := analyzeAllMedia(ctx, input.MediaItems, registeredTools)
 		if err != nil {
-			return nil, fmt.Errorf("!!! media analysis failed: %w", err)
+			return nil, fmt.Errorf("media analysis failed: %w", err)
 		}
 
 		// Step 2: VLog動画生成
@@ -114,7 +114,12 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 	results := make([]agent.MediaAnalysisOutput, 0, len(items))
 	var allErrors []error
 
+	var isAnalyzedCount int
 	for _, item := range items {
+		if item.IsAnalyzed {
+			isAnalyzedCount++
+			continue
+		}
 		resultRaw, analyzeErr := registeredTools.AnalyzeMedia.RunRaw(ctx, agent.MediaAnalysisInput{
 			FileID:      item.FileID,
 			URL:         item.URL,
@@ -161,7 +166,7 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 		}
 	}
 
-	if len(results) == 0 {
+	if len(results) == 0 && isAnalyzedCount == 0 {
 		if len(allErrors) > 0 {
 			return nil, errors.Join(allErrors...)
 		}

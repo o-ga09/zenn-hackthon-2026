@@ -22,6 +22,7 @@ type MediaItem struct {
 	ContentType string `json:"contentType" jsonschema:"description=MIMEタイプ"`
 	Timestamp   string `json:"timestamp,omitempty" jsonschema:"description=撮影日時（ISO 8601形式）"`
 	Order       int    `json:"order,omitempty" jsonschema:"description=表示順序"`
+	IsAnalyzed  bool   `json:"isAnalyzed,omitempty" jsonschema:"description=分析済みかどうか"`
 }
 
 // VlogStyle はVLog生成スタイルの設定
