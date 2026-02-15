@@ -44,6 +44,17 @@ func (c *CloudTaskClient) Enqueue(ctx context.Context, task *queue.Task) error {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
+	// タスクタイプに応じてエンドポイントを決定
+	var endpoint string
+	switch task.Type {
+	case "ProcessVLogTask":
+		endpoint = "/internal/tasks/create-vlog"
+	case "ProcessMediaAnalysisTask":
+		endpoint = "/internal/tasks/analyze-media"
+	default:
+		return fmt.Errorf("unknown task type: %s", task.Type)
+	}
+
 	queuePath := fmt.Sprintf("projects/%s/locations/%s/queues/%s", c.projectID, c.location, c.queue)
 
 	req := &cloudtaskspb.CreateTaskRequest{
@@ -52,7 +63,7 @@ func (c *CloudTaskClient) Enqueue(ctx context.Context, task *queue.Task) error {
 			MessageType: &cloudtaskspb.Task_HttpRequest{
 				HttpRequest: &cloudtaskspb.HttpRequest{
 					HttpMethod: cloudtaskspb.HttpMethod_POST,
-					Url:        fmt.Sprintf("%s/internal/tasks/create-vlog", c.baseURL),
+					Url:        fmt.Sprintf("%s%s", c.baseURL, endpoint),
 					Body:       payloadBytes,
 					Headers: map[string]string{
 						"Content-Type": "application/json",

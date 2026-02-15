@@ -20,6 +20,7 @@ func (m MediaStatus) String() string {
 const (
 	MediaStatusPending   MediaStatus = "pending"   // アップロード待機中
 	MediaStatusUploading MediaStatus = "uploading" // アップロード中
+	MediaStatusAnalyzing MediaStatus = "analyzing" // 分析中
 	MediaStatusCompleted MediaStatus = "completed" // アップロード完了
 	MediaStatusFailed    MediaStatus = "failed"    // アップロード失敗
 )

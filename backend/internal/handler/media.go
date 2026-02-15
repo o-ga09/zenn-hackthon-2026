@@ -3,17 +3,16 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/request"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/response"
-	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/date"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
-	"github.com/o-ga09/zenn-hackthon-2026/pkg/image"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
 	"gorm.io/gorm"
 )
@@ -59,9 +58,9 @@ func (s *ImageServer) List(c echo.Context) error {
 	mediaResponses := make([]*response.MediaListItem, 0, len(medias))
 	for _, media := range medias {
 		var url string
-		if media.URL.Valid {
-			objectKey := fmt.Sprintf("%s%s%s", media.URL.String, media.ID, image.GetExtensionFromContentType(media.ContentType))
-			url = storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
+		// NOTE: ローカル環境でフロントエンドで取得できるようにURLを置換
+		if env.Env == "local" {
+			url = strings.ReplaceAll(media.URL.String, "localstack", "localhost")
 		}
 		mediaResponses = append(mediaResponses, &response.MediaListItem{
 			ID:          media.ID,

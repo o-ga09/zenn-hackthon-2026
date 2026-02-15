@@ -37,7 +37,7 @@ func RegisterVlogFlow(g *genkit.Genkit, registeredTools *RegisteredTools) VlogFl
 		// Step 1: メディア分析
 		analysisResults, err := analyzeAllMedia(ctx, input.MediaItems, registeredTools)
 		if err != nil {
-			return nil, fmt.Errorf("media analysis failed: %w", err)
+			return nil, fmt.Errorf("!!! media analysis failed: %w", err)
 		}
 
 		// Step 2: VLog動画生成

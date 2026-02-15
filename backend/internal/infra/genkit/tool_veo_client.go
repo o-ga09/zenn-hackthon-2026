@@ -139,9 +139,13 @@ func GenerateVideoWithVeo(ctx context.Context, fc *FlowContext, config VeoGenera
 	}
 
 	env := pkgConfig.GetCtxEnv(ctx)
+	url := pkgStorage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
+	if env.Env == "local" {
+		url = fmt.Sprintf("%s/%s/%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
+	}
 	return &VeoGenerateResult{
 		VideoID:  videoID,
-		VideoURL: pkgStorage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey),
+		VideoURL: url,
 		Duration: float64(duration),
 	}, nil
 }

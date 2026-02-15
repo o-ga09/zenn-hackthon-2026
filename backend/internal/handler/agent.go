@@ -32,6 +32,7 @@ type IAgentServer interface {
 	AnalyzeMedia(echo.Context) error
 	StreamAnalysisStatus(echo.Context) error
 	ProcessVLogTask(echo.Context) error
+	ProcessMediaAnalysisTask(echo.Context) error
 }
 
 type AgentServer struct {
@@ -105,6 +106,7 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 				FileID:      media.ID,
 				URL:         media.URL.String,
 				ContentType: media.ContentType,
+				Type:        detectMediaType(media.ContentType),
 			})
 		}
 	}
@@ -195,6 +197,12 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 
 // executeVLogGeneration はVLog生成のコアロジックを実行する
 func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Task) error {
+	// タスクデータから*agent.VlogInputを取得
+	vlogInput, ok := task.Data.(*agent.VlogInput)
+	if !ok {
+		return fmt.Errorf("invalid task data type for VLog generation: expected *agent.VlogInput")
+	}
+
 	// 最新のVlogレコードを取得
 	vlogRef, err := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: task.ID}})
 	if err != nil {
@@ -215,7 +223,7 @@ func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Tas
 	var res *agent.VlogOutput
 	err = s.txManager.Do(ctx, func(ctx context.Context) error {
 		var err error
-		res, err = s.agent.CreateVlogWithProgress(ctx, task.Data, func(p agent.FlowProgress) {
+		res, err = s.agent.CreateVlogWithProgress(ctx, vlogInput, func(p agent.FlowProgress) {
 			// 進捗をDBに更新（最新のレコードを取得してから更新）
 			latestVlog, getErr := s.vlogRepo.GetByID(ctx, &domain.Vlog{BaseModel: domain.BaseModel{ID: vlogRef.ID}})
 			if getErr == nil {
@@ -352,7 +360,7 @@ func (s *AgentServer) uploadMediaFiles(ctx context.Context, userID string, files
 
 		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
 		if env.Env == "local" {
-			url = fmt.Sprintf("%s/%s/%s", "http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, key)
+			url = fmt.Sprintf("%s/%s/%s", "http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
 		}
 
 		// MediaItemを作成
@@ -394,65 +402,39 @@ func (s *AgentServer) AnalyzeMedia(c echo.Context) error {
 	}
 
 	// ファイルを取得
-	// 各ファイルのMediaレコードをPENDING状態で作成
+	// 各ファイルのMediaレコードをPENDING状態で作成し、先にアップロードを実行
 	files := req.Files
-	mediaIDs := make([]string, len(files))
+	mediaIDs := make([]string, 0, len(files))
+
 	for i, fileHeader := range files {
 		contentType := fileHeader.Header.Get("Content-Type")
+		if contentType == "" {
+			file, err := fileHeader.Open()
+			if err != nil {
+				continue
+			}
+			data, err := io.ReadAll(file)
+			file.Close()
+			if err != nil {
+				continue
+			}
+			contentType = image.DetectContentType(data)
+		}
+
 		media := &domain.Media{
+			BaseModel: domain.BaseModel{
+				CreateUserID: &userIDStr,
+			},
 			ContentType: contentType,
 			Size:        fileHeader.Size,
-			Status:      domain.MediaStatusPending,
+			Status:      domain.MediaStatusUploading,
 			Progress:    0.0,
 		}
 		if err := s.mediaRepo.Save(ctx, media); err != nil {
-			return errors.Wrap(ctx, err)
-		}
-		mediaIDs[i] = media.ID
-	}
-
-	// 非同期で分析処理を実行（新しいバックグラウンドコンテキストを使用）
-	env := config.GetCtxEnv(ctx)
-	if env.Env == "local" {
-		bgCtx := context.Background()
-		bgCtx = Ctx.SetConfig(bgCtx, env)
-		bgCtx = Ctx.SetCtxFromUser(bgCtx, userIDStr)
-		bgCtx = Ctx.SetRequestTime(bgCtx, time.Now())
-		bgCtx = Ctx.SetDB(bgCtx, Ctx.GetDB(ctx))
-		go func() {
-			if err := s.processMediaAnalysis(bgCtx, userIDStr, mediaIDs, files); err != nil {
-				fmt.Printf("Media analysis failed: %v\n", err)
-			}
-		}()
-	}
-
-	// 即座にmediaIDリストを返却
-	return c.JSON(http.StatusOK, response.AnalyzeMediaResponse{
-		MediaIDs: mediaIDs,
-		Status:   string(domain.MediaStatusPending),
-	})
-}
-
-// processMediaAnalysis は非同期でメディア分析を処理する
-func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, mediaIDs []string, files []*multipart.FileHeader) error {
-	totalFiles := len(files)
-	mediaItems := make([]agent.MediaItem, 0, totalFiles)
-
-	// Phase 1: アップロード（進捗 0.0 → 0.5）
-	for i, fileHeader := range files {
-		mediaID := mediaIDs[i]
-		media, err := s.mediaRepo.GetByID(ctx, mediaID)
-		if err != nil {
 			continue
 		}
 
-		// Status: UPLOADING
-		media.Status = domain.MediaStatusUploading
-		media.Progress = 0.1
-		if err := s.mediaRepo.Save(ctx, media); err != nil {
-		}
-
-		// ファイルを開いてアップロード
+		// ファイルをアップロード
 		file, err := fileHeader.Open()
 		if err != nil {
 			media.Status = domain.MediaStatusFailed
@@ -470,16 +452,11 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 			continue
 		}
 
-		contentType := fileHeader.Header.Get("Content-Type")
-		if contentType == "" {
-			contentType = image.DetectContentType(data)
-		}
-
 		ext := filepath.Ext(fileHeader.Filename)
 		if ext == "" {
 			ext = image.GetExtensionFromContentType(contentType)
 		}
-		key := fmt.Sprintf("users/%s/uploads/%s%s", userID, mediaID, ext)
+		key := fmt.Sprintf("users/%s/uploads/%s%s", userIDStr, media.ID, ext)
 
 		objectKey, err := s.storage.UploadFile(ctx, key, data, contentType)
 		if err != nil {
@@ -490,47 +467,141 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 		}
 
 		// アップロード成功 - URLを更新
-		media.URL = nullvalue.ToNullString(key)
-		media.Progress = 0.5 // アップロード完了で50%
-		if err := s.mediaRepo.Save(ctx, media); err != nil {
-		}
-
 		env := config.GetCtxEnv(ctx)
-
 		url := storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, objectKey)
 		if env.Env == "local" {
 			url = fmt.Sprintf("%s/%s/%s", "http://localstack:4566", env.CLOUDFLARE_R2_BUCKET_NAME, key)
 		}
 
-		mediaItems = append(mediaItems, agent.MediaItem{
-			FileID:      mediaID,
-			URL:         url,
-			Type:        detectMediaType(contentType),
-			ContentType: contentType,
-			Order:       i + 1,
+		media.URL = nullvalue.ToNullString(url)
+		media.Progress = 0.5                     // アップロード完了で50%
+		media.Status = domain.MediaStatusPending // 分析待ちに戻す
+		if err := s.mediaRepo.Save(ctx, media); err != nil {
+			continue
+		}
+
+		mediaIDs = append(mediaIDs, media.ID)
+		_ = i // 未使用変数の警告を回避
+	}
+
+	if len(mediaIDs) == 0 {
+		return errors.MakeBusinessError(ctx, "No media files were successfully uploaded")
+	}
+
+	// Cloud Tasksにタスクを登録
+	payload := &queue.Task{
+		Type: "ProcessMediaAnalysisTask",
+		Data: map[string]interface{}{
+			"user_id":   userIDStr,
+			"media_ids": mediaIDs,
+		},
+		Status: domain.MediaStatusPending.String(),
+	}
+
+	env := config.GetCtxEnv(ctx)
+	if env.Env == "local" {
+		// ローカル環境ではGoroutineで直接実行
+		bgCtx := context.Background()
+		bgCtx = Ctx.SetConfig(bgCtx, env)
+		bgCtx = Ctx.SetCtxFromUser(bgCtx, userIDStr)
+		bgCtx = Ctx.SetRequestTime(bgCtx, time.Now())
+		bgCtx = Ctx.SetDB(bgCtx, Ctx.GetDB(ctx))
+		go func() {
+			if err := s.executeMediaAnalysis(bgCtx, payload); err != nil {
+				fmt.Printf("Media analysis failed: %v\n", err)
+			}
+		}()
+	} else {
+		if err := s.taskClient.Enqueue(ctx, payload); err != nil {
+			return errors.Wrap(ctx, err)
+		}
+	}
+
+	// 即座にmediaIDリストを返却
+	return c.JSON(http.StatusOK, response.AnalyzeMediaResponse{
+		MediaIDs: mediaIDs,
+		Status:   string(domain.MediaStatusPending),
+	})
+}
+
+// ProcessMediaAnalysisTask はCloud Tasksからのリクエストを受け取り、メディア分析を非同期に実行する
+func (s *AgentServer) ProcessMediaAnalysisTask(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var task queue.Task
+	if err := c.Bind(&task); err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	if err := s.executeMediaAnalysis(ctx, &task); err != nil {
+		return errors.Wrap(ctx, err)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+// executeMediaAnalysis はメディア分析のコアロジックを実行する
+func (s *AgentServer) executeMediaAnalysis(ctx context.Context, task *queue.Task) error {
+	// タスクデータから必要な情報を取得
+	data, ok := task.Data.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("invalid task data format")
+	}
+
+	userID, _ := data["user_id"].(string)
+	mediaIDsInterface, _ := data["media_ids"].([]string)
+	mediaIDs := mediaIDsInterface
+	return s.processMediaAnalysisFromIDs(ctx, userID, mediaIDs)
+}
+
+// processMediaAnalysisFromIDs はメディアIDから分析を実行する
+func (s *AgentServer) processMediaAnalysisFromIDs(ctx context.Context, userID string, mediaIDs []string) error {
+	if len(mediaIDs) == 0 {
+		return errors.MakeBusinessError(ctx, "No media IDs provided for analysis")
+	}
+
+	// メディアレコードを取得してMediaItemsを構築
+	mediaItems := make([]agent.MediaAnalysisInput, 0, len(mediaIDs))
+	for _, mediaID := range mediaIDs {
+		media, err := s.mediaRepo.GetByID(ctx, mediaID)
+		if err != nil {
+			// メディアが見つからない場合はスキップ
+			continue
+		}
+
+		if !media.URL.Valid {
+			// URLが無効な場合は失敗ステータスに更新
+			media.Status = domain.MediaStatusFailed
+			media.ErrorMessage = "Media URL is invalid"
+			s.mediaRepo.Save(ctx, media)
+			continue
+		}
+
+		// Status: ANALYZING
+		media.Status = domain.MediaStatusAnalyzing
+		media.Progress = 0.6
+		if err := s.mediaRepo.Save(ctx, media); err != nil {
+			fmt.Printf("Failed to update media status: %v\n", err)
+		}
+
+		mediaType := detectMediaType(media.ContentType)
+		mediaItems = append(mediaItems, agent.MediaAnalysisInput{
+			FileID:      media.ID,
+			URL:         media.URL.String,
+			Type:        mediaType,
+			ContentType: media.ContentType,
 		})
 	}
 
 	if len(mediaItems) == 0 {
-		return errors.MakeBusinessError(ctx, "No media items were successfully uploaded for analysis")
-	}
-
-	// Phase 2: 分析（進捗 0.5 → 1.0）
-	analysisItems := make([]agent.MediaAnalysisInput, len(mediaItems))
-	for i, item := range mediaItems {
-		analysisItems[i] = agent.MediaAnalysisInput{
-			FileID:      item.FileID,
-			URL:         item.URL,
-			Type:        item.Type,
-			ContentType: item.ContentType,
-		}
-	}
-
-	input := &agent.MediaAnalysisBatchInput{
-		Items: analysisItems,
+		return errors.MakeBusinessError(ctx, "No valid media items found for analysis")
 	}
 
 	// 分析を実行
+	input := &agent.MediaAnalysisBatchInput{
+		Items: mediaItems,
+	}
+
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		_, err := s.agent.AnalyzeMediaBatch(ctx, input)
 		if err != nil {
@@ -561,6 +632,7 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 				Read:    false,
 			}
 			if notifErr := s.notificationRepo.Create(ctx, notification); notifErr != nil {
+				fmt.Printf("Failed to create notification: %v\n", notifErr)
 			}
 		} else {
 			media.Status = domain.MediaStatusCompleted
@@ -576,11 +648,11 @@ func (s *AgentServer) processMediaAnalysis(ctx context.Context, userID string, m
 				Read:    false,
 			}
 			if notifErr := s.notificationRepo.Create(ctx, notification); notifErr != nil {
-				return errors.Wrap(ctx, notifErr)
+				fmt.Printf("Failed to create notification: %v\n", notifErr)
 			}
 		}
 		if err := s.mediaRepo.Save(ctx, media); err != nil {
-			continue
+			fmt.Printf("Failed to save media: %v\n", err)
 		}
 	}
 	return nil

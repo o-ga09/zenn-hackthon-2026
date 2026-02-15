@@ -62,5 +62,6 @@ func (s *Server) SetupApplicationRoute() {
 	internal := s.Engine.Group("/internal")
 	{
 		internal.POST("/tasks/create-vlog", s.Agent.ProcessVLogTask)
+		internal.POST("/tasks/analyze-media", s.Agent.ProcessMediaAnalysisTask)
 	}
 }
