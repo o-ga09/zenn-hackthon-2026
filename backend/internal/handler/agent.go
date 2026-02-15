@@ -198,9 +198,13 @@ func (s *AgentServer) ProcessVLogTask(c echo.Context) error {
 // executeVLogGeneration はVLog生成のコアロジックを実行する
 func (s *AgentServer) executeVLogGeneration(ctx context.Context, task *queue.Task) error {
 	// タスクデータから*agent.VlogInputを取得
-	vlogInput, ok := task.Data.(*agent.VlogInput)
-	if !ok {
-		return errors.MakeBusinessError(ctx, "invalid task data type for VLog generation: expected *agent.VlogInput")
+	b, err := json.Marshal(task.Data)
+	if err != nil {
+		return errors.Wrap(ctx, fmt.Errorf("failed to marshal task data: %w", err))
+	}
+	var vlogInput *agent.VlogInput
+	if err := json.Unmarshal(b, &vlogInput); err != nil {
+		return errors.Wrap(ctx, fmt.Errorf("failed to unmarshal task data to VlogInput: %w", err))
 	}
 
 	// 最新のVlogレコードを取得
