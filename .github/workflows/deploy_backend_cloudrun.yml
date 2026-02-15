@@ -93,7 +93,7 @@ jobs:
             --set-env-vars "ENV=PROD" \
             --set-env-vars "SERVICE_ACCOUNT_EMAIL=${{ secrets.SERVICE_ACCOUNT }}" \
             --set-env-vars "BASE_URL=${{ secrets.BASE_URL }}" \
-            --set-env-vars "CLOUD_TASKS_QUEUE_NAME=tavinikkiy-agent-queue" \
+            --set-env-vars "CLOUD_TASKS_QUEUE_NAME=tavinikkiy-agent-queue-1" \
             --set-env-vars "CLOUD_TASKS_LOCATION=asia-northeast1"
         env:
           IMAGE: asia-northeast1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
