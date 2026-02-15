@@ -12,7 +12,7 @@ type VLogRepository struct{}
 func (r *VLogRepository) List(ctx context.Context, opts *domain.ListOptions) ([]*domain.Vlog, error) {
 	var vlogs []*domain.Vlog
 	userID := Ctx.GetCtxFromUser(ctx)
-	if err := Ctx.GetDB(ctx).Where("user_id = ?", userID).Find(&vlogs).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Where("create_user_id = ?", userID).Find(&vlogs).Error; err != nil {
 		return nil, err
 	}
 	return vlogs, nil
@@ -21,7 +21,7 @@ func (r *VLogRepository) List(ctx context.Context, opts *domain.ListOptions) ([]
 func (r *VLogRepository) GetByID(ctx context.Context, model *domain.Vlog) (*domain.Vlog, error) {
 	var vlog *domain.Vlog
 	userID := Ctx.GetCtxFromUser(ctx)
-	if err := Ctx.GetDB(ctx).Where("id = ? AND user_id = ?", model.ID, userID).First(&vlog).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Where("id = ? AND create_user_id = ?", model.ID, userID).First(&vlog).Error; err != nil {
 		return nil, err
 	}
 	return vlog, nil
@@ -29,7 +29,7 @@ func (r *VLogRepository) GetByID(ctx context.Context, model *domain.Vlog) (*doma
 
 func (r *VLogRepository) Delete(ctx context.Context, model *domain.Vlog) error {
 	userID := Ctx.GetCtxFromUser(ctx)
-	if err := Ctx.GetDB(ctx).Where("id = ? AND user_id = ?", model.ID, userID).Delete(model).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Where("id = ? AND create_user_id = ?", model.ID, userID).Delete(model).Error; err != nil {
 		return err
 	}
 	return nil
