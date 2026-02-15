@@ -47,13 +47,11 @@ func DefineAnalyzeMediaTool(g *genkit.Genkit) ai.Tool {
 
 			// メディアパーツを追加（URLからデータを取得してBase64で渡す）
 			var mediaParts []*ai.Part
-			fmt.Println("❓", input.Type)
 			if input.Type == "image" || input.Type == "video" {
 				mediaData, contentType, err := http.FetchMediaData(input.URL, input.ContentType)
 				if err != nil {
 					return agent.MediaAnalysisOutput{}, fmt.Errorf("%w: failed to fetch media: %v", pkgerrors.ErrMediaAnalysisFailed, err)
 				}
-				fmt.Println("❓", mediaData[:100], "...", contentType) // デバッグ用ログ
 				// Base64エンコードしてdata URIとして渡す
 				dataURI := fmt.Sprintf("data:%s;base64,%s", contentType, base64.StdEncoding.EncodeToString(mediaData))
 				mediaParts = append(mediaParts, ai.NewMediaPart(contentType, dataURI))
