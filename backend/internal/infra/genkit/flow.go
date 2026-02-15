@@ -116,6 +116,7 @@ func analyzeAllMedia(ctx context.Context, items []agent.MediaItem, registeredToo
 
 	var isAnalyzedCount int
 	for _, item := range items {
+		fmt.Println(item.IsAnalyzed)
 		if item.IsAnalyzed {
 			isAnalyzedCount++
 			continue

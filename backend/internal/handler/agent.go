@@ -183,7 +183,7 @@ func (s *AgentServer) CreateVLog(c echo.Context) error {
 			return errors.Wrap(ctx, err)
 		}
 	}
-
+	fmt.Println(input.MediaItems[0].IsAnalyzed)
 	return c.JSON(http.StatusAccepted, response.CreateVLogResponse{
 		VlogID: vlog.ID,
 		Status: string(domain.VlogStatusProcessing),
