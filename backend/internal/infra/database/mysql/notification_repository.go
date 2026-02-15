@@ -23,7 +23,8 @@ func (r *NotificationRepository) Create(ctx context.Context, notification *domai
 // FindByID - IDで通知を取得
 func (r *NotificationRepository) FindByID(ctx context.Context, id string) (*domain.Notification, error) {
 	var notification domain.Notification
-	if err := Ctx.GetDB(ctx).Where("id = ?", id).First(&notification).Error; err != nil {
+	userID := Ctx.GetCtxFromUser(ctx)
+	if err := Ctx.GetDB(ctx).Where("id = ? AND user_id = ?", id, userID).First(&notification).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.Wrap(ctx, err)
 		}

@@ -11,7 +11,8 @@ type MediaRepository struct{}
 
 func (r *MediaRepository) List(ctx context.Context, opts *domain.ListOpts) ([]*domain.Media, error) {
 	var medias []*domain.Media
-	if err := Ctx.GetDB(ctx).Find(&medias).Error; err != nil {
+	userID := Ctx.GetCtxFromUser(ctx)
+	if err := Ctx.GetDB(ctx).Where("user_id = ?", userID).Find(&medias).Error; err != nil {
 		return nil, err
 	}
 	return medias, nil
@@ -19,7 +20,8 @@ func (r *MediaRepository) List(ctx context.Context, opts *domain.ListOpts) ([]*d
 
 func (r *MediaRepository) GetByID(ctx context.Context, id string) (*domain.Media, error) {
 	var media *domain.Media
-	if err := Ctx.GetDB(ctx).Where("id = ?", id).First(&media).Error; err != nil {
+	userID := Ctx.GetCtxFromUser(ctx)
+	if err := Ctx.GetDB(ctx).Where("id = ? AND user_id = ?", id, userID).First(&media).Error; err != nil {
 		return nil, err
 	}
 	return media, nil
