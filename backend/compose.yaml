@@ -30,7 +30,7 @@ services:
       APP_NAME: tavinikkiy
       PORT: 8080
       PROJECT_ID: ${PROJECT_ID}
-      DATABASE_URL: user:P@ssw0rd@tcp(db:3306)/develop_tavinikkiy?parseTime=true
+      DATABASE_URL_FOR_AGENT_TAVINIKKIY: user:P@ssw0rd@tcp(db:3306)/develop_tavinikkiy?parseTime=true
       GOOGLE_APPLICATION_CREDENTIALS: /app/tavinikkiy-8e89cb34ad51.json
       CLOUDFLARE_R2_ACCOUNT_ID: dummy
       CLOUDFLARE_R2_ACCESSKEY: dummy
