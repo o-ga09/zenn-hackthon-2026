@@ -8,8 +8,10 @@ import (
 	"github.com/o-ga09/zenn-hackthon-2026/internal/domain"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/request"
 	"github.com/o-ga09/zenn-hackthon-2026/internal/handler/response"
+	"github.com/o-ga09/zenn-hackthon-2026/internal/infra/storage"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/config"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/context"
+	"github.com/o-ga09/zenn-hackthon-2026/pkg/date"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/errors"
 	"github.com/o-ga09/zenn-hackthon-2026/pkg/ptr"
 	"gorm.io/gorm"
@@ -55,18 +57,19 @@ func (s *ImageServer) List(c echo.Context) error {
 
 	mediaResponses := make([]*response.MediaListItem, 0, len(medias))
 	for _, media := range medias {
-		var key string
+		var url string
 		if media.URL.Valid {
-			key = fmt.Sprintf("%s/%s/%s", env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, media.URL.String)
+			objectKey := fmt.Sprintf("%s/%s", media.URL.String, media.ID)
+			url = storage.ObjectURKFromKey(env.CLOUDFLARE_R2_PUBLIC_URL, env.CLOUDFLARE_R2_BUCKET_NAME, objectKey)
 		}
 		mediaResponses = append(mediaResponses, &response.MediaListItem{
 			ID:          media.ID,
 			ContentType: media.ContentType,
 			Size:        media.Size,
-			URL:         ptr.StringToPtr(key),
+			URL:         ptr.StringToPtr(url),
 			Status:      string(media.Status),
 			ImageData:   base64Images[media.URL.String],
-			CreatedAt:   media.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt:   date.Format(media.CreatedAt),
 		})
 	}
 
