@@ -549,8 +549,12 @@ func (s *AgentServer) executeMediaAnalysis(ctx context.Context, task *queue.Task
 	}
 
 	userID, _ := data["user_id"].(string)
-	mediaIDsInterface, _ := data["media_ids"].([]string)
-	mediaIDs := mediaIDsInterface
+	mediaIDsInterface, _ := data["media_ids"].([]interface{})
+	mediaIDs := make([]string, len(mediaIDsInterface))
+	for i, v := range mediaIDsInterface {
+		mediaIDs[i], _ = v.(string)
+	}
+	fmt.Println(len(mediaIDsInterface))
 	return s.processMediaAnalysisFromIDs(ctx, userID, mediaIDs)
 }
 
