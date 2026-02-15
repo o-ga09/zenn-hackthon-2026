@@ -20,16 +20,14 @@ func (r *VLogRepository) List(ctx context.Context, opts *domain.ListOptions) ([]
 
 func (r *VLogRepository) GetByID(ctx context.Context, model *domain.Vlog) (*domain.Vlog, error) {
 	var vlog *domain.Vlog
-	userID := Ctx.GetCtxFromUser(ctx)
-	if err := Ctx.GetDB(ctx).Where("id = ? AND create_user_id = ?", model.ID, userID).First(&vlog).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Where("id = ?", model.ID).First(&vlog).Error; err != nil {
 		return nil, err
 	}
 	return vlog, nil
 }
 
 func (r *VLogRepository) Delete(ctx context.Context, model *domain.Vlog) error {
-	userID := Ctx.GetCtxFromUser(ctx)
-	if err := Ctx.GetDB(ctx).Where("id = ? AND create_user_id = ?", model.ID, userID).Delete(model).Error; err != nil {
+	if err := Ctx.GetDB(ctx).Where("id = ?", model.ID).Delete(model).Error; err != nil {
 		return err
 	}
 	return nil
